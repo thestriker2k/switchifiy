@@ -40,6 +40,7 @@ export default function SwitchesPage() {
     SwitchRecipientRow[]
   >([]);
 
+  // Create switch
   const [name, setName] = useState("");
   const [intervalDays, setIntervalDays] = useState(30);
   const [graceDays, setGraceDays] = useState(3);
@@ -55,6 +56,7 @@ export default function SwitchesPage() {
   const [messageBody, setMessageBody] = useState("");
   const [savingMessage, setSavingMessage] = useState(false);
 
+  // Attach recipients
   const [selectedRecipientBySwitch, setSelectedRecipientBySwitch] = useState<
     Record<string, string>
   >({});
@@ -83,6 +85,7 @@ export default function SwitchesPage() {
     const { data, error } = await supabase
       .from("switch_recipients")
       .select("*");
+
     if (error) return setError(error.message);
     setSwitchRecipients(data ?? []);
   }
@@ -94,8 +97,8 @@ export default function SwitchesPage() {
         router.replace("/login");
         return;
       }
-      setEmail(data.user.email ?? null);
 
+      setEmail(data.user.email ?? null);
       await loadSwitches();
       await loadRecipients();
       await loadSwitchRecipients();
@@ -116,6 +119,24 @@ export default function SwitchesPage() {
       return;
     }
 
+    if (intervalDays < 1) {
+      setError("Interval must be at least 1 day.");
+      setSaving(false);
+      return;
+    }
+
+    if (graceDays < 0) {
+      setError("Grace period cannot be negative.");
+      setSaving(false);
+      return;
+    }
+
+    if (graceDays >= intervalDays) {
+      setError("Grace period must be less than the interval.");
+      setSaving(false);
+      return;
+    }
+
     const { error } = await supabase.from("switches").insert({
       name: cleanedName,
       interval_days: intervalDays,
@@ -130,9 +151,6 @@ export default function SwitchesPage() {
     }
 
     setName("");
-    setIntervalDays(30);
-    setGraceDays(3);
-
     await loadSwitches();
     setSaving(false);
   }
@@ -153,6 +171,9 @@ export default function SwitchesPage() {
     setSwitches((prev) => prev.filter((s) => s.id !== id));
     // Switch recipients are cascade-deleted in DB, but refresh to keep UI accurate:
     await loadSwitchRecipients();
+
+    // Close message editor if it was open for this switch
+    if (editingMessageFor === id) setEditingMessageFor(null);
   }
 
   async function loadMessageForSwitch(switchId: string) {
@@ -245,49 +266,110 @@ export default function SwitchesPage() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Switches</h1>
-          <p className="mt-1 text-sm opacity-80">Signed in as: {email}</p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold">Switches</h1>
+        <p className="mt-1 text-sm opacity-80">Signed in as: {email}</p>
       </div>
 
       {error && <div className="border rounded-md p-3 text-sm">{error}</div>}
 
+      {/* CREATE SWITCH (Day 5 upgraded UI) */}
       <section className="border rounded-xl p-4">
         <h2 className="font-semibold">Create a Switch</h2>
 
-        <form onSubmit={createSwitch} className="mt-4 space-y-3">
-          <input
-            className="w-full border rounded-md p-3"
-            placeholder="Switch name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
+        <form onSubmit={createSwitch} className="mt-4 space-y-4">
+          {/* Name */}
+          <div className="space-y-1">
+            <label className="text-sm opacity-80">Switch name</label>
+            <input
+              className="w-full border rounded-md p-3"
+              placeholder="e.g., Monthly check-in"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <label className="space-y-1">
-              <div className="text-sm opacity-80">Check-in interval (days)</div>
-              <input
-                className="w-full border rounded-md p-3"
-                type="number"
-                min={1}
-                value={intervalDays}
-                onChange={(e) => setIntervalDays(Number(e.target.value))}
-              />
-            </label>
+          {/* Interval */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm opacity-80">
+                Check-in interval (days)
+              </label>
+              <div className="text-sm font-medium">{intervalDays}d</div>
+            </div>
 
-            <label className="space-y-1">
-              <div className="text-sm opacity-80">Grace period (days)</div>
-              <input
-                className="w-full border rounded-md p-3"
-                type="number"
-                min={0}
-                value={graceDays}
-                onChange={(e) => setGraceDays(Number(e.target.value))}
-              />
-            </label>
+            <div className="flex flex-wrap gap-2">
+              {[7, 14, 30, 60, 90].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  className={`border rounded-md px-3 py-2 text-sm ${
+                    intervalDays === d ? "font-semibold" : ""
+                  }`}
+                  onClick={() => setIntervalDays(d)}
+                >
+                  {d}d
+                </button>
+              ))}
+            </div>
+
+            <input
+              className="w-full border rounded-md p-3"
+              type="number"
+              min={1}
+              value={intervalDays}
+              onChange={(e) => setIntervalDays(Number(e.target.value))}
+              required
+            />
+
+            <p className="text-xs opacity-70">
+              How often you must check in to keep the switch from triggering.
+            </p>
+          </div>
+
+          {/* Grace */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm opacity-80">Grace period (days)</label>
+              <div className="text-sm font-medium">{graceDays}d</div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {[0, 1, 3, 7].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  className={`border rounded-md px-3 py-2 text-sm ${
+                    graceDays === d ? "font-semibold" : ""
+                  }`}
+                  onClick={() => setGraceDays(d)}
+                >
+                  {d}d
+                </button>
+              ))}
+            </div>
+
+            <input
+              className="w-full border rounded-md p-3"
+              type="number"
+              min={0}
+              value={graceDays}
+              onChange={(e) => setGraceDays(Number(e.target.value))}
+              required
+            />
+
+            <p className="text-xs opacity-70">
+              Extra buffer after the interval before the switch triggers.
+            </p>
+          </div>
+
+          {/* Summary */}
+          <div className="border rounded-xl p-3 text-sm opacity-80">
+            This switch triggers after{" "}
+            <span className="font-medium">{intervalDays}</span> days without a
+            check-in, plus a <span className="font-medium">{graceDays}</span>
+            -day grace period.
           </div>
 
           <button
@@ -299,6 +381,7 @@ export default function SwitchesPage() {
         </form>
       </section>
 
+      {/* SWITCH LIST (keeps messages + recipients attach/remove) */}
       <section>
         <h2 className="font-semibold">Your Switches</h2>
 
@@ -326,6 +409,7 @@ export default function SwitchesPage() {
                   </button>
                 </div>
 
+                {/* Message controls */}
                 <div className="flex gap-2">
                   <button
                     className="border rounded-md px-3 py-2 text-sm"
@@ -349,6 +433,7 @@ export default function SwitchesPage() {
                   )}
                 </div>
 
+                {/* Message editor */}
                 {editingMessageFor === s.id && (
                   <div className="border rounded-xl p-3 space-y-2">
                     <div className="text-sm font-medium">
@@ -378,6 +463,7 @@ export default function SwitchesPage() {
                       {savingMessage ? "Saving..." : "Save message"}
                     </button>
 
+                    {/* Recipients block */}
                     <div className="border-t pt-4">
                       <div className="text-sm font-medium">Recipients</div>
 

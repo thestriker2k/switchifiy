@@ -25,9 +25,7 @@ export default function DashboardLayout({
               <Link className="hover:underline" href="/dashboard">
                 Overview
               </Link>
-              <Link className="hover:underline" href="/dashboard/switches">
-                Switches
-              </Link>
+
               <Link className="hover:underline" href="/dashboard/contacts">
                 Contacts
               </Link>
