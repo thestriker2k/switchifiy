@@ -33,7 +33,9 @@ function escapeHtml(input: string) {
 
 export async function GET(req: Request) {
   try {
-    // --- Protect this endpoint (recommended) ---
+    // ✅ Option A (Vercel cron built-in auth):
+    // If you're using Vercel Cron auth, REMOVE any CRON_SECRET checks.
+    // (If you still want manual testing locally, keep it but optional.)
 
     const supabaseUrl = process.env.SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -92,7 +94,6 @@ export async function GET(req: Request) {
       const dueAt = addDays(base, s.interval_days);
       if (!dueAt) continue;
 
-      // If we've already sent an alert since the base timestamp, don't resend in this cycle
       const alreadySentForThisCycle =
         s.last_alert_sent_at &&
         new Date(s.last_alert_sent_at).getTime() >= new Date(base).getTime();
@@ -105,7 +106,14 @@ export async function GET(req: Request) {
     let emailsSent = 0;
     let emailsFailed = 0;
 
-    // 2) For each due switch: load message + recipients, send emails, mark last_alert_sent_at
+    const failures: Array<{
+      switchId: string;
+      to: string;
+      error: string;
+      code?: string | number;
+    }> = [];
+
+    // 2) Send emails for due switches
     for (const s of due) {
       const { data: msg, error: msgErr } = await supabase
         .from("messages")
@@ -115,7 +123,7 @@ export async function GET(req: Request) {
 
       if (msgErr) continue;
 
-      const subject = (msg?.subject || "Switch Triggered").toString();
+      const subject = (msg?.subject || "Switch Triggered").toString().trim();
       const bodyRaw = (msg?.body || "").toString().trim();
       if (!bodyRaw) continue;
 
@@ -144,6 +152,8 @@ export async function GET(req: Request) {
 
       const safeHtmlBody = escapeHtml(bodyRaw).replace(/\n/g, "<br />");
 
+      let anySuccessForThisSwitch = false;
+
       for (const to of emails) {
         try {
           await client.sendEmail({
@@ -152,14 +162,12 @@ export async function GET(req: Request) {
             ReplyTo: replyTo,
             Subject: subject,
 
-            // Plain text version + footer
             TextBody: `${bodyRaw}
 
 —
 Switchifye Alerts
 Questions? Email support@switchifye.com`,
 
-            // HTML version + footer
             HtmlBody: `
               <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.6;">
                 <h2 style="margin: 0 0 12px;">${escapeHtml(subject)}</h2>
@@ -181,16 +189,27 @@ Questions? Email support@switchifye.com`,
           });
 
           emailsSent += 1;
-        } catch {
+          anySuccessForThisSwitch = true;
+        } catch (err: any) {
           emailsFailed += 1;
+
+          // Postmark often gives useful fields like "code" and "message"
+          failures.push({
+            switchId: s.id,
+            to,
+            error: err?.message ?? "Unknown Postmark error",
+            code: err?.code,
+          });
         }
       }
 
-      // mark as alerted so it doesn't re-send every 20 mins
-      await supabase
-        .from("switches")
-        .update({ last_alert_sent_at: now.toISOString() })
-        .eq("id", s.id);
+      // ✅ Only mark sent if at least one email succeeded
+      if (anySuccessForThisSwitch) {
+        await supabase
+          .from("switches")
+          .update({ last_alert_sent_at: now.toISOString() })
+          .eq("id", s.id);
+      }
     }
 
     return NextResponse.json({
@@ -199,6 +218,7 @@ Questions? Email support@switchifye.com`,
       due: due.length,
       emailsSent,
       emailsFailed,
+      failures: failures.slice(0, 25), // prevent huge payloads
     });
   } catch (err: any) {
     return NextResponse.json(
