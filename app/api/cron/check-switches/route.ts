@@ -33,10 +33,6 @@ function escapeHtml(input: string) {
 
 export async function GET(req: Request) {
   try {
-    // ✅ Option A (Vercel cron built-in auth):
-    // If you're using Vercel Cron auth, REMOVE any CRON_SECRET checks.
-    // (If you still want manual testing locally, keep it but optional.)
-
     const supabaseUrl = process.env.SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -193,7 +189,6 @@ Questions? Email support@switchifye.com`,
         } catch (err: any) {
           emailsFailed += 1;
 
-          // Postmark often gives useful fields like "code" and "message"
           failures.push({
             switchId: s.id,
             to,
@@ -207,7 +202,10 @@ Questions? Email support@switchifye.com`,
       if (anySuccessForThisSwitch) {
         await supabase
           .from("switches")
-          .update({ last_alert_sent_at: now.toISOString() })
+          .update({
+            last_alert_sent_at: now.toISOString(),
+            status: "completed",
+          })
           .eq("id", s.id);
       }
     }
@@ -218,7 +216,7 @@ Questions? Email support@switchifye.com`,
       due: due.length,
       emailsSent,
       emailsFailed,
-      failures: failures.slice(0, 25), // prevent huge payloads
+      failures: failures.slice(0, 25),
     });
   } catch (err: any) {
     return NextResponse.json(

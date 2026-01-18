@@ -5,6 +5,11 @@ import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { StatCard } from "@/components/ui/StatCard";
+import { Badge } from "@/components/ui/Badge";
+
 type SwitchRow = {
   id: string;
   name: string;
@@ -12,6 +17,10 @@ type SwitchRow = {
   interval_days: number;
   grace_days: number;
   created_at: string;
+
+  // from schema
+  last_checkin_at: string | null;
+  timezone: string | null;
 };
 
 type RecipientRow = {
@@ -39,20 +48,41 @@ function addDays(dateIso: string, days: number) {
   return d;
 }
 
-function formatDateLong(d: Date) {
-  return d.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
-
 function formatDateShort(d: Date) {
   return d.toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
     day: "numeric",
   });
+}
+
+function formatDateTime(d: Date, timeZone?: string | null) {
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      timeZone: timeZone ?? undefined,
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(d);
+  } catch {
+    return new Intl.DateTimeFormat(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(d);
+  }
+}
+
+function getBrowserTimeZone(fallback: string = "UTC") {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function Toggle({
@@ -103,8 +133,8 @@ function IntervalButtons({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <div className="text-sm opacity-80">{label}</div>
-        <div className="text-sm font-medium">
+        <div className="text-sm text-gray-600">{label}</div>
+        <div className="text-sm font-medium text-gray-900">
           {value === 1 ? "24 hours" : value === 365 ? "1 year" : `${value}d`}
         </div>
       </div>
@@ -119,9 +149,9 @@ function IntervalButtons({
               disabled={disabled}
               onClick={() => onChange(d)}
               className={[
-                "border rounded-md px-3 py-2 text-sm transition",
-                active ? "bg-black text-white border-black" : "",
-                disabled ? "opacity-50 cursor-not-allowed" : "",
+                "border rounded-lg px-3 py-2 text-sm transition",
+                active ? "bg-black text-white border-black" : "bg-white",
+                disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50",
               ].join(" ")}
             >
               {d === 1 ? "24 hours" : d === 365 ? "1 year" : `${d}d`}
@@ -136,9 +166,6 @@ function IntervalButtons({
 function renderWithTokens({
   subject,
   body,
-  switchName,
-  intervalDays,
-  createdAtIso,
   previewRecipient,
 }: {
   subject: string;
@@ -148,17 +175,6 @@ function renderWithTokens({
   createdAtIso: string | null;
   previewRecipient: { name: string; email: string } | null;
 }) {
-  const createdDate =
-    createdAtIso && !Number.isNaN(new Date(createdAtIso).getTime())
-      ? new Date(createdAtIso)
-      : null;
-
-  const triggerDate =
-    createdAtIso && createdDate ? addDays(createdAtIso, intervalDays) : null;
-
-  const intervalLabel =
-    intervalDays === 1 ? "24 hours" : `${intervalDays} days`;
-
   const fullName = (previewRecipient?.name ?? "Recipient Name").trim();
   const firstName = fullName.split(/\s+/).filter(Boolean)[0] || "Recipient";
 
@@ -174,12 +190,6 @@ function renderWithTokens({
     }
     return out;
   };
-
-  // keep unused params (switchName/intervalDays/etc) untouched — leaving your structure the same
-  void switchName;
-  void intervalLabel;
-  void triggerDate;
-  void createdDate;
 
   return {
     subject: apply(subject),
@@ -243,8 +253,6 @@ function wrapSelectionWith(
 }
 
 function markdownPreserveLineBreaks(text: string) {
-  // ReactMarkdown treats single newlines as spaces; force hard breaks.
-  // This keeps your existing "plain text feel" while enabling markdown features.
   return (text ?? "").replace(/\n/g, "  \n");
 }
 
@@ -255,11 +263,16 @@ export default function DashboardOverviewPage() {
 
   const [activeCount, setActiveCount] = useState(0);
   const [inactiveCount, setInactiveCount] = useState(0);
+  const [completedCount, setCompletedCount] = useState(0);
 
   const [activeSwitches, setActiveSwitches] = useState<SwitchRow[]>([]);
   const [inactiveSwitches, setInactiveSwitches] = useState<SwitchRow[]>([]);
+  const [completedSwitches, setCompletedSwitches] = useState<SwitchRow[]>([]);
 
   const [error, setError] = useState<string | null>(null);
+
+  // Header stat
+  const [lastCheckInAt, setLastCheckInAt] = useState<string | null>(null);
 
   // Recipients + links
   const [recipients, setRecipients] = useState<RecipientRow[]>([]);
@@ -335,6 +348,29 @@ export default function DashboardOverviewPage() {
   const intervalLabel = (days: number) =>
     days === 1 ? "24 hours" : `${days} days`;
 
+  const browserTZ = useMemo(() => getBrowserTimeZone("UTC"), []);
+
+  // Prevent double-run in dev Strict Mode
+  const didCheckInRef = useRef(false);
+
+  async function markCheckInNow() {
+    const nowIso = new Date().toISOString();
+
+    // Only ACTIVE switches update on refresh/login
+    const { error } = await supabase
+      .from("switches")
+      .update({ last_checkin_at: nowIso })
+      .eq("status", "active");
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+
+    // Update header instantly
+    setLastCheckInAt(nowIso);
+  }
+
   // ---------- LOADERS ----------
   async function refreshOverview() {
     setError(null);
@@ -342,6 +378,7 @@ export default function DashboardOverviewPage() {
     const [
       { count: active, error: activeErr },
       { count: inactive, error: inErr },
+      { count: completed, error: compErr },
     ] = await Promise.all([
       supabase
         .from("switches")
@@ -350,36 +387,75 @@ export default function DashboardOverviewPage() {
       supabase
         .from("switches")
         .select("*", { count: "exact", head: true })
-        .neq("status", "active"),
+        .eq("status", "paused"),
+      supabase
+        .from("switches")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "completed"),
     ]);
 
     if (activeErr) return setError(activeErr.message);
     if (inErr) return setError(inErr.message);
+    if (compErr) return setError(compErr.message);
 
     setActiveCount(active ?? 0);
     setInactiveCount(inactive ?? 0);
+    setCompletedCount(completed ?? 0);
 
     const [
       { data: actData, error: actListErr },
       { data: inData, error: inListErr },
+      { data: compData, error: compListErr },
     ] = await Promise.all([
       supabase
         .from("switches")
-        .select("id,name,status,interval_days,grace_days,created_at")
+        .select(
+          "id,name,status,interval_days,grace_days,created_at,last_checkin_at,timezone"
+        )
         .eq("status", "active")
         .order("created_at", { ascending: false }),
       supabase
         .from("switches")
-        .select("id,name,status,interval_days,grace_days,created_at")
-        .neq("status", "active")
+        .select(
+          "id,name,status,interval_days,grace_days,created_at,last_checkin_at,timezone"
+        )
+        .eq("status", "paused")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("switches")
+        .select(
+          "id,name,status,interval_days,grace_days,created_at,last_checkin_at,timezone"
+        )
+        .eq("status", "completed")
         .order("created_at", { ascending: false }),
     ]);
 
     if (actListErr) return setError(actListErr.message);
     if (inListErr) return setError(inListErr.message);
+    if (compListErr) return setError(compListErr.message);
 
     setActiveSwitches((actData ?? []) as SwitchRow[]);
     setInactiveSwitches((inData ?? []) as SwitchRow[]);
+    setCompletedSwitches((compData ?? []) as SwitchRow[]);
+
+    // Compute latest check-in across ACTIVE switches only
+    const all = (actData ?? []) as SwitchRow[];
+    let maxIso: string | null = null;
+
+    for (const s of all) {
+      const iso = s.last_checkin_at;
+      if (!iso) continue;
+      const t = new Date(iso).getTime();
+      if (Number.isNaN(t)) continue;
+
+      if (!maxIso) maxIso = iso;
+      else {
+        const cur = new Date(maxIso).getTime();
+        if (t > cur) maxIso = iso;
+      }
+    }
+
+    setLastCheckInAt((prev) => prev ?? maxIso);
   }
 
   async function loadRecipients() {
@@ -406,6 +482,12 @@ export default function DashboardOverviewPage() {
       if (!auth.user) {
         router.replace("/login");
         return;
+      }
+
+      // login/refresh counts as check-in (ACTIVE only)
+      if (!didCheckInRef.current) {
+        didCheckInRef.current = true;
+        await markCheckInNow();
       }
 
       await Promise.all([
@@ -457,7 +539,7 @@ export default function DashboardOverviewPage() {
 
   function getNextDefaultSwitchName() {
     const base = "Default Switch Name";
-    const all = [...activeSwitches, ...inactiveSwitches];
+    const all = [...activeSwitches, ...inactiveSwitches, ...completedSwitches];
 
     let maxN = 0;
     for (const s of all) {
@@ -585,6 +667,8 @@ export default function DashboardOverviewPage() {
     setCreating(true);
 
     const finalName = createName.trim() || getNextDefaultSwitchName();
+    const tz = browserTZ;
+    const nowIso = new Date().toISOString();
 
     const { data: inserted, error: insertError } = await supabase
       .from("switches")
@@ -593,6 +677,8 @@ export default function DashboardOverviewPage() {
         interval_days: createIntervalDays,
         grace_days: 0,
         status: "active",
+        last_checkin_at: nowIso,
+        timezone: tz,
       })
       .select("id")
       .single();
@@ -664,9 +750,10 @@ export default function DashboardOverviewPage() {
     return (
       activeSwitches.find((s) => s.id === editingId) ??
       inactiveSwitches.find((s) => s.id === editingId) ??
+      completedSwitches.find((s) => s.id === editingId) ??
       null
     );
-  }, [editingId, activeSwitches, inactiveSwitches]);
+  }, [editingId, activeSwitches, inactiveSwitches, completedSwitches]);
 
   async function startEdit(s: SwitchRow) {
     setError(null);
@@ -756,11 +843,14 @@ export default function DashboardOverviewPage() {
     setSavingSwitch(true);
     setSavingMessage(true);
 
+    const tz = editingSwitch?.timezone || browserTZ;
+
     const { error: switchError } = await supabase
       .from("switches")
       .update({
         name: editName.trim(),
         interval_days: editIntervalDays,
+        timezone: tz,
       })
       .eq("id", editingId);
 
@@ -845,16 +935,33 @@ export default function DashboardOverviewPage() {
 
     if (editingId === switchId) setEditingId(null);
 
-    const nextStatus = makeActive ? "active" : "paused";
+    if (makeActive) {
+      const nowIso = new Date().toISOString();
+      const checkInIso = lastCheckInAt ?? nowIso;
 
-    const { error } = await supabase
-      .from("switches")
-      .update({ status: nextStatus })
-      .eq("id", switchId);
+      const { error } = await supabase
+        .from("switches")
+        .update({
+          status: "active",
+          last_checkin_at: checkInIso,
+          timezone: browserTZ,
+        })
+        .eq("id", switchId);
 
-    if (error) {
-      setTogglingId(null);
-      return setError(error.message);
+      if (error) {
+        setTogglingId(null);
+        return setError(error.message);
+      }
+    } else {
+      const { error } = await supabase
+        .from("switches")
+        .update({ status: "paused" })
+        .eq("id", switchId);
+
+      if (error) {
+        setTogglingId(null);
+        return setError(error.message);
+      }
     }
 
     await refreshOverview();
@@ -995,13 +1102,12 @@ export default function DashboardOverviewPage() {
     }
   }
 
-  // ---------- UI ----------
   const Toolbar = () => (
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex items-center gap-2">
         <button
           type="button"
-          className="border rounded-md px-2 py-1 text-xs font-medium"
+          className="border rounded-md px-2 py-1 text-xs font-medium hover:bg-gray-50"
           onClick={() => handleFormat("bold")}
           disabled={!focusTarget}
           title={!focusTarget ? "Click into Subject or Body first" : "Bold"}
@@ -1010,7 +1116,7 @@ export default function DashboardOverviewPage() {
         </button>
         <button
           type="button"
-          className="border rounded-md px-2 py-1 text-xs italic"
+          className="border rounded-md px-2 py-1 text-xs italic hover:bg-gray-50"
           onClick={() => handleFormat("italic")}
           disabled={!focusTarget}
           title={!focusTarget ? "Click into Subject or Body first" : "Italic"}
@@ -1026,7 +1132,7 @@ export default function DashboardOverviewPage() {
           <button
             key={t}
             type="button"
-            className="border rounded-full px-3 py-1 text-xs"
+            className="border rounded-full px-3 py-1 text-xs hover:bg-gray-50"
             onClick={() => handleInsertToken(t)}
             disabled={!focusTarget}
             title={
@@ -1038,7 +1144,7 @@ export default function DashboardOverviewPage() {
         ))}
       </div>
 
-      <div className="text-xs opacity-60">
+      <div className="text-xs text-gray-500">
         {!focusTarget
           ? "Click into Subject or Body to insert/format."
           : "Inserts/wraps at selection."}
@@ -1062,12 +1168,12 @@ export default function DashboardOverviewPage() {
     const r = recipients.find((x) => x.id === previewAsId) ?? null;
 
     return (
-      <div className="border rounded-xl p-3 space-y-3">
+      <Card className="p-4">
         <div className="flex items-center justify-between gap-3">
-          <div className="text-sm font-medium">{title}</div>
+          <div className="text-sm font-medium text-gray-900">{title}</div>
 
           <select
-            className="border rounded-md p-2 text-sm"
+            className="border rounded-md p-2 text-sm bg-white"
             value={previewAsId}
             onChange={(e) => setPreviewAsId(e.target.value)}
           >
@@ -1080,275 +1186,317 @@ export default function DashboardOverviewPage() {
           </select>
         </div>
 
-        <div className="border rounded-lg p-3 space-y-2 bg-white">
-          <div className="text-xs opacity-70">
+        <div className="mt-3 border rounded-xl p-3 space-y-2 bg-white">
+          <div className="text-xs text-gray-500">
             To:{" "}
-            <span className="font-medium">
+            <span className="font-medium text-gray-900">
               {r
                 ? `${r.name} <${r.email}>`
                 : "Recipient Name <recipient@email.com>"}
             </span>
           </div>
 
-          <div className="text-xs opacity-70">
-            Subject: <span className="font-medium">{subject || "—"}</span>
+          <div className="text-xs text-gray-500">
+            Subject:{" "}
+            <span className="font-medium text-gray-900">{subject || "—"}</span>
           </div>
 
           <div className="border-t pt-3">
-            <div className="text-sm">
+            <div className="text-sm text-gray-900">
               <ReactMarkdown>
                 {markdownPreserveLineBreaks(body || "—")}
               </ReactMarkdown>
             </div>
           </div>
 
-          <div className="border-t pt-2 text-xs opacity-60">
+          <div className="border-t pt-2 text-xs text-gray-500">
             (Preview only — message sends when the switch triggers)
           </div>
         </div>
-      </div>
+      </Card>
     );
   };
 
-  const renderEditor = () => (
-    <div className="border rounded-xl p-4 space-y-4 mt-3">
-      <div className="text-sm font-medium">
-        Edit switch (settings, message, recipients)
-      </div>
+  const renderEditor = () => {
+    const isCompleted = editingSwitch?.status === "completed";
 
-      {saveNotice && <div className="text-sm opacity-80">{saveNotice}</div>}
+    return (
+      <Card className="p-5 mt-4 bg-gray-50 space-y-6">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-sm font-medium text-gray-900">
+            {isCompleted
+              ? "View switch details"
+              : "Edit switch (settings, message, recipients)"}
+          </div>
+          {saveNotice && (
+            <div className="text-sm text-gray-700">{saveNotice}</div>
+          )}
+        </div>
 
-      <div className="space-y-1">
-        <div className="text-sm opacity-80">Name</div>
-        <input
-          className="w-full border rounded-md p-2"
-          value={editName}
-          onChange={(e) => setEditName(e.target.value)}
-        />
-      </div>
-
-      <IntervalButtons
-        value={editIntervalDays}
-        onChange={setEditIntervalDays}
-        disabled={deleting}
-        label="Interval"
-      />
-
-      {/* Recipients FIRST */}
-      <div className="border-t pt-4 space-y-3">
-        <div className="text-sm font-medium">Recipients</div>
-
-        {attachedRecipientsForEditing.length === 0 ? (
-          <p className="text-sm opacity-80">No recipients attached yet.</p>
-        ) : (
+        {/* Settings */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            {attachedRecipientsForEditing.map((r) => (
-              <div key={r.id} className="flex items-center justify-between">
-                <div className="text-sm opacity-80">
-                  {r.name} <span className="opacity-60">({r.email})</span>
+            <div className="text-sm text-gray-600">Name</div>
+            <input
+              className="w-full border rounded-md p-2 bg-white"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              disabled={deleting || isCompleted}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <IntervalButtons
+              value={editIntervalDays}
+              onChange={setEditIntervalDays}
+              disabled={deleting || isCompleted}
+              label="Interval"
+            />
+          </div>
+        </div>
+
+        {/* Recipients */}
+        <div className="border-t pt-4 space-y-3">
+          <div className="text-sm font-medium text-gray-900">Recipients</div>
+
+          {attachedRecipientsForEditing.length === 0 ? (
+            <p className="text-sm text-gray-600">No recipients attached yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {attachedRecipientsForEditing.map((r) => (
+                <div
+                  key={r.id}
+                  className="flex items-center justify-between gap-3"
+                >
+                  <div className="text-sm text-gray-800">
+                    {r.name} <span className="text-gray-500">({r.email})</span>
+                  </div>
+
+                  {!isCompleted && (
+                    <button
+                      type="button"
+                      className="text-red-600 hover:underline text-sm"
+                      disabled={savingRecipient || deleting}
+                      onClick={() => removeRecipient(r.id)}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!isCompleted && (
+            <>
+              <select
+                className="border rounded-md p-2 text-sm w-full bg-white"
+                value={selectedRecipientId}
+                onChange={async (e) => {
+                  const id = e.target.value;
+                  setSelectedRecipientId(id);
+                  if (!id || !editingId) return;
+
+                  if (attachedRecipientIds.has(id)) {
+                    setSelectedRecipientId("");
+                    return;
+                  }
+
+                  await attachRecipientToSwitch(editingId, id);
+                  setSelectedRecipientId("");
+                }}
+                disabled={deleting}
+              >
+                <option value="">Select contact…</option>
+                {recipients.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name} — {r.email}
+                  </option>
+                ))}
+              </select>
+
+              <Card className="p-4 space-y-2 bg-white">
+                <div className="text-sm font-medium text-gray-900">
+                  Add a new contact
                 </div>
 
-                <button
+                <input
+                  className="w-full border rounded-md p-2 text-sm bg-white"
+                  placeholder="Name"
+                  value={editNewRecipientName}
+                  onChange={(e) => setEditNewRecipientName(e.target.value)}
+                  disabled={deleting || addingContactInEditor}
+                />
+
+                <input
+                  className="w-full border rounded-md p-2 text-sm bg-white"
+                  placeholder="Email"
+                  value={editNewRecipientEmail}
+                  onChange={(e) => setEditNewRecipientEmail(e.target.value)}
+                  disabled={deleting || addingContactInEditor}
+                />
+
+                <Button
                   type="button"
-                  className="text-red-600 hover:underline text-sm"
-                  disabled={savingRecipient || deleting}
-                  onClick={() => removeRecipient(r.id)}
+                  onClick={() =>
+                    createRecipientAndMaybeSelect({
+                      name: editNewRecipientName,
+                      email: editNewRecipientEmail,
+                      mode: "edit",
+                    })
+                  }
+                  disabled={deleting || addingContactInEditor}
+                  className="w-full"
                 >
-                  Remove
-                </button>
-              </div>
-            ))}
+                  {addingContactInEditor ? "Adding..." : "Add contact"}
+                </Button>
+
+                <div className="text-xs text-gray-500">
+                  This contact will be saved for future switches too.
+                </div>
+              </Card>
+            </>
+          )}
+        </div>
+
+        {/* Message */}
+        <div className="border-t pt-4 space-y-3">
+          <div className="text-sm font-medium text-gray-900">Message</div>
+
+          {!isCompleted && <Toolbar />}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <input
+                ref={editSubjectRef}
+                className="w-full border rounded-md p-2 bg-white"
+                placeholder="Subject"
+                value={messageSubject}
+                onChange={(e) => setMessageSubject(e.target.value)}
+                onFocus={() =>
+                  setFocusTarget({ mode: "edit", field: "subject" })
+                }
+                disabled={deleting || isCompleted}
+              />
+
+              <textarea
+                ref={editBodyRef}
+                className="w-full border rounded-md p-2 min-h-[160px] bg-white"
+                placeholder="Message body..."
+                value={messageBody}
+                onChange={(e) => setMessageBody(e.target.value)}
+                onFocus={() => setFocusTarget({ mode: "edit", field: "body" })}
+                disabled={deleting || isCompleted}
+              />
+            </div>
+
+            {renderMessagePreview({
+              title: "Preview",
+              previewAsId: editPreviewRecipientId,
+              setPreviewAsId: setEditPreviewRecipientId,
+              subject: editPreview.subject,
+              body: editPreview.body,
+            })}
           </div>
-        )}
+        </div>
 
-        <select
-          className="border rounded-md p-2 text-sm w-full"
-          value={selectedRecipientId}
-          onChange={async (e) => {
-            const id = e.target.value;
-            setSelectedRecipientId(id);
-            if (!id || !editingId) return;
+        {/* Save row */}
+        <div className="flex flex-wrap gap-2 pt-2">
+          {!isCompleted && (
+            <Button
+              type="button"
+              className="border-gray-900"
+              disabled={
+                savingSwitch || savingMessage || savingRecipient || deleting
+              }
+              onClick={saveAll}
+            >
+              {savingSwitch || savingMessage ? "Saving..." : "Save all"}
+            </Button>
+          )}
 
-            if (attachedRecipientIds.has(id)) {
-              setSelectedRecipientId("");
-              return;
-            }
-
-            await attachRecipientToSwitch(editingId, id);
-            setSelectedRecipientId("");
-          }}
-          disabled={deleting}
-        >
-          <option value="">Select contact…</option>
-          {recipients.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.name} — {r.email}
-            </option>
-          ))}
-        </select>
-
-        <div className="border rounded-xl p-3 space-y-2">
-          <div className="text-sm font-medium">Add a new contact</div>
-
-          <input
-            className="w-full border rounded-md p-2 text-sm"
-            placeholder="Name"
-            value={editNewRecipientName}
-            onChange={(e) => setEditNewRecipientName(e.target.value)}
-            disabled={deleting || addingContactInEditor}
-          />
-
-          <input
-            className="w-full border rounded-md p-2 text-sm"
-            placeholder="Email"
-            value={editNewRecipientEmail}
-            onChange={(e) => setEditNewRecipientEmail(e.target.value)}
-            disabled={deleting || addingContactInEditor}
-          />
-
-          <button
+          <Button
             type="button"
-            className="border rounded-md px-3 py-2 text-sm w-full"
-            onClick={() =>
-              createRecipientAndMaybeSelect({
-                name: editNewRecipientName,
-                email: editNewRecipientEmail,
-                mode: "edit",
-              })
+            onClick={cancelEdit}
+            disabled={
+              savingSwitch || savingMessage || savingRecipient || deleting
             }
-            disabled={deleting || addingContactInEditor}
           >
-            {addingContactInEditor ? "Adding..." : "Add contact"}
-          </button>
+            {isCompleted ? "Close" : "Cancel"}
+          </Button>
 
-          <div className="text-xs opacity-70">
-            This contact will be saved for future switches too.
-          </div>
+          <Button
+            type="button"
+            className="text-red-600"
+            onClick={deleteSwitchFromEditor}
+            disabled={
+              savingSwitch || savingMessage || savingRecipient || deleting
+            }
+          >
+            {deleting ? "Deleting..." : "Delete switch"}
+          </Button>
         </div>
-      </div>
+      </Card>
+    );
+  };
 
-      {/* Message RIGHT ABOVE SAVE */}
-      <div className="border-t pt-4 space-y-3">
-        <div className="text-sm font-medium">Message</div>
-
-        <Toolbar />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <input
-              ref={editSubjectRef}
-              className="w-full border rounded-md p-2"
-              placeholder="Subject"
-              value={messageSubject}
-              onChange={(e) => setMessageSubject(e.target.value)}
-              onFocus={() => setFocusTarget({ mode: "edit", field: "subject" })}
-              disabled={deleting}
-            />
-
-            <textarea
-              ref={editBodyRef}
-              className="w-full border rounded-md p-2 min-h-[160px]"
-              placeholder="Message body..."
-              value={messageBody}
-              onChange={(e) => setMessageBody(e.target.value)}
-              onFocus={() => setFocusTarget({ mode: "edit", field: "body" })}
-              disabled={deleting}
-            />
-          </div>
-
-          {renderMessagePreview({
-            title: "Preview",
-            previewAsId: editPreviewRecipientId,
-            setPreviewAsId: setEditPreviewRecipientId,
-            subject: editPreview.subject,
-            body: editPreview.body,
-          })}
-        </div>
-      </div>
-
-      {/* Save row */}
-      <div className="flex flex-wrap gap-2 pt-2">
-        <button
-          type="button"
-          className="border rounded-md px-3 py-2 text-sm"
-          disabled={
-            savingSwitch || savingMessage || savingRecipient || deleting
-          }
-          onClick={saveAll}
-        >
-          {savingSwitch || savingMessage ? "Saving..." : "Save all"}
-        </button>
-
-        <button
-          type="button"
-          className="border rounded-md px-3 py-2 text-sm"
-          onClick={cancelEdit}
-          disabled={
-            savingSwitch || savingMessage || savingRecipient || deleting
-          }
-        >
-          Cancel
-        </button>
-
-        <button
-          type="button"
-          className="border rounded-md px-3 py-2 text-sm text-red-600"
-          onClick={deleteSwitchFromEditor}
-          disabled={
-            savingSwitch || savingMessage || savingRecipient || deleting
-          }
-        >
-          {deleting ? "Deleting..." : "Delete switch"}
-        </button>
-      </div>
-    </div>
-  );
-
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div className="p-6">Loading...</div>;
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Overview</h1>
-
-      {error && <div className="border rounded-md p-3 text-sm">{error}</div>}
-
-      <div className="border rounded-xl p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex gap-8">
-            <div>
-              <div className="text-sm opacity-80">Active switches</div>
-              <div className="mt-2 text-4xl font-bold">{activeCount}</div>
-            </div>
-
-            <div>
-              <div className="text-sm opacity-80">Inactive switches</div>
-              <div className="mt-2 text-4xl font-bold">{inactiveCount}</div>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            className="border rounded-md px-4 py-2 text-sm"
-            onClick={() => {
-              setEditingId(null);
-              setError(null);
-              setShowCreate((v) => !v);
-              setFocusTarget(null);
-            }}
-          >
-            {showCreate ? "Close" : "Add a switch"}
-          </button>
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+            Overview
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Your switches and check-ins, at a glance.
+          </p>
         </div>
+
+        <Button
+          type="button"
+          onClick={() => {
+            setEditingId(null);
+            setError(null);
+            setShowCreate((v) => !v);
+            setFocusTarget(null);
+          }}
+        >
+          {showCreate ? "Close" : "Add a switch"}
+        </Button>
+      </div>
+
+      {error && (
+        <Card className="p-4 border-red-200 bg-red-50">
+          <div className="text-sm text-red-700">{error}</div>
+        </Card>
+      )}
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+        <StatCard title="Active switches" value={activeCount} />
+        <StatCard title="Inactive switches" value={inactiveCount} />
+        <StatCard title="Completed switches" value={completedCount} />
+        <StatCard
+          title="Last check-in"
+          value={
+            lastCheckInAt
+              ? formatDateTime(new Date(lastCheckInAt), browserTZ)
+              : "—"
+          }
+          footer={browserTZ}
+        />
       </div>
 
       {/* CREATE SWITCH PANEL */}
       {showCreate && (
-        <section className="border rounded-xl p-4 space-y-4">
+        <Card className="p-5 space-y-5">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold">Create a switch</h2>
-            <button
+            <h2 className="font-semibold text-gray-900">Create a switch</h2>
+            <Button
               type="button"
-              className="border rounded-md px-3 py-2 text-sm"
               onClick={() => {
                 setShowCreate(false);
                 setError(null);
@@ -1356,13 +1504,13 @@ export default function DashboardOverviewPage() {
               }}
             >
               Cancel
-            </button>
+            </Button>
           </div>
 
-          <div className="space-y-1">
-            <div className="text-sm opacity-80">Switch name</div>
+          <div className="space-y-2">
+            <div className="text-sm text-gray-600">Switch name</div>
             <input
-              className="w-full border rounded-md p-2"
+              className="w-full border rounded-md p-2 bg-white"
               value={createName}
               onChange={(e) => setCreateName(e.target.value)}
               placeholder="Enter the name of your Switch"
@@ -1377,17 +1525,17 @@ export default function DashboardOverviewPage() {
             label="Check-in interval"
           />
 
-          {/* Recipients FIRST */}
+          {/* Recipients */}
           <div className="border-t pt-4 space-y-3">
-            <div className="text-sm font-medium">Recipients</div>
+            <div className="text-sm font-medium text-gray-900">Recipients</div>
 
             {recipients.length === 0 ? (
-              <p className="text-sm opacity-80">
+              <p className="text-sm text-gray-600">
                 No contacts yet. Add one below.
               </p>
             ) : (
               <select
-                className="border rounded-md p-2 text-sm w-full"
+                className="border rounded-md p-2 text-sm w-full bg-white"
                 value={createSelectedRecipientId}
                 onChange={(e) => {
                   const id = e.target.value;
@@ -1407,7 +1555,7 @@ export default function DashboardOverviewPage() {
             )}
 
             {createRecipientIds.size === 0 ? (
-              <div className="text-xs opacity-70">
+              <div className="text-xs text-gray-500">
                 Select at least 1 recipient.
               </div>
             ) : (
@@ -1417,7 +1565,7 @@ export default function DashboardOverviewPage() {
                   return (
                     <div
                       key={id}
-                      className="flex items-center gap-2 border rounded-full px-3 py-1 text-sm"
+                      className="flex items-center gap-2 border rounded-full px-3 py-1 text-sm bg-white"
                     >
                       <span className="max-w-[220px] truncate">
                         {r ? `${r.name} (${r.email})` : id}
@@ -1437,11 +1585,13 @@ export default function DashboardOverviewPage() {
               </div>
             )}
 
-            <div className="border rounded-xl p-3 space-y-2">
-              <div className="text-sm font-medium">Add a new contact</div>
+            <Card className="p-4 space-y-2 bg-white">
+              <div className="text-sm font-medium text-gray-900">
+                Add a new contact
+              </div>
 
               <input
-                className="w-full border rounded-md p-2 text-sm"
+                className="w-full border rounded-md p-2 text-sm bg-white"
                 placeholder="Name"
                 value={newRecipientName}
                 onChange={(e) => setNewRecipientName(e.target.value)}
@@ -1449,16 +1599,16 @@ export default function DashboardOverviewPage() {
               />
 
               <input
-                className="w-full border rounded-md p-2 text-sm"
+                className="w-full border rounded-md p-2 text-sm bg-white"
                 placeholder="Email"
                 value={newRecipientEmail}
                 onChange={(e) => setNewRecipientEmail(e.target.value)}
                 disabled={creating || addingContact}
               />
 
-              <button
+              <Button
                 type="button"
-                className="border rounded-md px-3 py-2 text-sm w-full"
+                className="w-full"
                 onClick={() =>
                   createRecipientAndMaybeSelect({
                     name: newRecipientName,
@@ -1469,17 +1619,17 @@ export default function DashboardOverviewPage() {
                 disabled={creating || addingContact}
               >
                 {addingContact ? "Adding..." : "Add contact"}
-              </button>
+              </Button>
 
-              <div className="text-xs opacity-70">
+              <div className="text-xs text-gray-500">
                 This contact will be saved for future switches too.
               </div>
-            </div>
+            </Card>
           </div>
 
-          {/* Message RIGHT ABOVE CREATE */}
+          {/* Message */}
           <div className="border-t pt-4 space-y-3">
-            <div className="text-sm font-medium">Message</div>
+            <div className="text-sm font-medium text-gray-900">Message</div>
 
             <Toolbar />
 
@@ -1487,7 +1637,7 @@ export default function DashboardOverviewPage() {
               <div className="space-y-2">
                 <input
                   ref={createSubjectRef}
-                  className="w-full border rounded-md p-2"
+                  className="w-full border rounded-md p-2 bg-white"
                   placeholder="Message title"
                   value={createMessageSubject}
                   onChange={(e) => setCreateMessageSubject(e.target.value)}
@@ -1499,7 +1649,7 @@ export default function DashboardOverviewPage() {
 
                 <textarea
                   ref={createBodyRef}
-                  className="w-full border rounded-md p-2 min-h-[160px]"
+                  className="w-full border rounded-md p-2 min-h-[160px] bg-white"
                   placeholder="Message..."
                   value={createMessageBody}
                   onChange={(e) => setCreateMessageBody(e.target.value)}
@@ -1520,33 +1670,38 @@ export default function DashboardOverviewPage() {
             </div>
           </div>
 
-          <button
+          <Button
             type="button"
-            className="border rounded-md px-4 py-2 text-sm w-full"
+            className="w-full border-gray-900"
             disabled={creating}
             onClick={createSwitchFromOverview}
           >
             {creating ? "Creating..." : "Create switch"}
-          </button>
-        </section>
+          </Button>
+        </Card>
       )}
 
       {/* Active switches */}
       <section className="space-y-3">
-        <h2 className="font-semibold">Your active switches</h2>
+        <h2 className="font-semibold text-gray-900">Your active switches</h2>
 
         {activeSwitches.length === 0 ? (
-          <p className="text-sm opacity-80">No active switches yet.</p>
+          <p className="text-sm text-gray-600">No active switches yet.</p>
         ) : (
           <div className="space-y-3">
             {activeSwitches.map((s) => {
-              const triggerDate = addDays(s.created_at, s.interval_days);
+              const baseIso = s.last_checkin_at ?? s.created_at;
+              const totalDays = (s.interval_days ?? 0) + (s.grace_days ?? 0);
+              const triggerDate = addDays(baseIso, totalDays);
+
               const createdDate = new Date(s.created_at);
               const isToggling = togglingId === s.id;
               const isOpen = editingId === s.id;
 
+              const tz = s.timezone || browserTZ;
+
               return (
-                <div key={s.id} className="border rounded-xl p-4">
+                <Card key={s.id} className="p-5">
                   <div className="flex items-start gap-4">
                     <div className="pt-1">
                       <Toggle
@@ -1560,16 +1715,24 @@ export default function DashboardOverviewPage() {
                     <div className="flex-1">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="font-medium truncate">{s.name}</div>
-
-                          <div className="mt-1 text-sm opacity-80">
-                            This switch is currently set to trigger at:{" "}
-                            <span className="font-medium">
-                              {triggerDate ? formatDateLong(triggerDate) : "—"}
-                            </span>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="font-semibold text-gray-900 truncate">
+                              {s.name}
+                            </div>
+                            <Badge tone="active">Active</Badge>
                           </div>
 
-                          <div className="mt-1 text-xs opacity-70">
+                          <div className="mt-2 text-sm text-gray-700">
+                            This switch is currently set to trigger on:{" "}
+                            <span className="font-medium text-gray-900">
+                              {triggerDate
+                                ? formatDateTime(triggerDate, tz)
+                                : "—"}
+                            </span>
+                            <span className="text-gray-500"> ({tz})</span>
+                          </div>
+
+                          <div className="mt-2 text-xs text-gray-500">
                             Interval: {intervalLabel(s.interval_days)} •
                             Created:{" "}
                             {Number.isNaN(createdDate.getTime())
@@ -1578,9 +1741,8 @@ export default function DashboardOverviewPage() {
                           </div>
                         </div>
 
-                        <button
+                        <Button
                           type="button"
-                          className="border rounded-md px-3 py-2 text-sm"
                           onClick={() => {
                             setShowCreate(false);
                             if (isOpen) cancelEdit();
@@ -1588,13 +1750,13 @@ export default function DashboardOverviewPage() {
                           }}
                         >
                           {isOpen ? "Close" : "Edit"}
-                        </button>
+                        </Button>
                       </div>
 
                       {isOpen && renderEditor()}
                     </div>
                   </div>
-                </div>
+                </Card>
               );
             })}
           </div>
@@ -1603,10 +1765,10 @@ export default function DashboardOverviewPage() {
 
       {/* Inactive switches */}
       <section className="space-y-3">
-        <h2 className="font-semibold">Inactive switches</h2>
+        <h2 className="font-semibold text-gray-900">Inactive switches</h2>
 
         {inactiveSwitches.length === 0 ? (
-          <p className="text-sm opacity-80">No inactive switches.</p>
+          <p className="text-sm text-gray-600">No inactive switches.</p>
         ) : (
           <div className="space-y-3">
             {inactiveSwitches.map((s) => {
@@ -1615,7 +1777,7 @@ export default function DashboardOverviewPage() {
               const isOpen = editingId === s.id;
 
               return (
-                <div key={s.id} className="border rounded-xl p-4">
+                <Card key={s.id} className="p-5">
                   <div className="flex items-start gap-4">
                     <div className="pt-1">
                       <Toggle
@@ -1629,24 +1791,24 @@ export default function DashboardOverviewPage() {
                     <div className="flex-1">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="font-medium truncate">{s.name}</div>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="font-semibold text-gray-900 truncate">
+                              {s.name}
+                            </div>
+                            <Badge tone="neutral">{s.status}</Badge>
+                          </div>
 
-                          <div className="mt-1 text-xs opacity-70">
+                          <div className="mt-2 text-xs text-gray-500">
                             Interval: {intervalLabel(s.interval_days)} •
                             Created:{" "}
                             {Number.isNaN(createdDate.getTime())
                               ? "—"
                               : formatDateShort(createdDate)}
                           </div>
-
-                          <div className="mt-1 text-xs opacity-70">
-                            Status: {s.status}
-                          </div>
                         </div>
 
-                        <button
+                        <Button
                           type="button"
-                          className="border rounded-md px-3 py-2 text-sm"
                           onClick={() => {
                             setShowCreate(false);
                             if (isOpen) cancelEdit();
@@ -1654,13 +1816,92 @@ export default function DashboardOverviewPage() {
                           }}
                         >
                           {isOpen ? "Close" : "Edit"}
-                        </button>
+                        </Button>
                       </div>
 
                       {isOpen && renderEditor()}
                     </div>
                   </div>
-                </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Completed switches */}
+      <section className="space-y-3">
+        <h2 className="font-semibold text-gray-900">Completed switches</h2>
+
+        {completedSwitches.length === 0 ? (
+          <p className="text-sm text-gray-600">No completed switches.</p>
+        ) : (
+          <div className="space-y-3">
+            {completedSwitches.map((s) => {
+              const createdDate = new Date(s.created_at);
+              const isOpen = editingId === s.id;
+
+              return (
+                <Card key={s.id} className="p-5">
+                  <div className="flex items-start gap-4">
+                    <div className="pt-1">
+                      <div className="h-6 w-11 flex items-center justify-center">
+                        <svg
+                          className="w-5 h-5 text-green-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="font-semibold text-gray-900 truncate">
+                              {s.name}
+                            </div>
+                            <Badge tone="success">Completed</Badge>
+                          </div>
+
+                          <div className="mt-2 text-sm text-gray-700">
+                            This switch has triggered and notifications were
+                            sent.
+                          </div>
+
+                          <div className="mt-2 text-xs text-gray-500">
+                            Interval: {intervalLabel(s.interval_days)} •
+                            Created:{" "}
+                            {Number.isNaN(createdDate.getTime())
+                              ? "—"
+                              : formatDateShort(createdDate)}
+                          </div>
+                        </div>
+
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            setShowCreate(false);
+                            if (isOpen) cancelEdit();
+                            else startEdit(s);
+                          }}
+                        >
+                          {isOpen ? "Close" : "View"}
+                        </Button>
+                      </div>
+
+                      {isOpen && renderEditor()}
+                    </div>
+                  </div>
+                </Card>
               );
             })}
           </div>
