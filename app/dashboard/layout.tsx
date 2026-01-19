@@ -29,6 +29,10 @@ export default function DashboardLayout({
               <Link className="hover:underline" href="/dashboard/contacts">
                 Contacts
               </Link>
+
+              <Link className="hover:underline" href="/dashboard/settings">
+                Settings
+              </Link>
             </nav>
           </div>
 

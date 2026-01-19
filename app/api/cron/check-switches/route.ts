@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import postmark from "postmark";
+import * as postmark from "postmark";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
@@ -13,6 +13,13 @@ type DbSwitch = {
   created_at: string;
   last_checkin_at: string | null;
   last_alert_sent_at: string | null;
+  reminder_50_sent_at: string | null;
+  reminder_90_sent_at: string | null;
+};
+
+type UserSettings = {
+  user_id: string;
+  reminder_enabled: boolean;
 };
 
 function addDays(dateIso: string, days: number) {
@@ -46,7 +53,7 @@ export async function GET(req: Request) {
           ok: false,
           error: "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY",
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -57,7 +64,7 @@ export async function GET(req: Request) {
           error:
             "Missing POSTMARK_SERVER_TOKEN / POSTMARK_FROM_EMAIL / POSTMARK_REPLY_TO_EMAIL",
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -71,36 +78,97 @@ export async function GET(req: Request) {
     const { data: switches, error: swErr } = await supabase
       .from("switches")
       .select(
-        "id,name,user_id,status,interval_days,created_at,last_checkin_at,last_alert_sent_at"
+        "id,name,user_id,status,interval_days,created_at,last_checkin_at,last_alert_sent_at,reminder_50_sent_at,reminder_90_sent_at",
       )
       .eq("status", "active");
 
     if (swErr) {
       return NextResponse.json(
         { ok: false, error: swErr.message },
-        { status: 500 }
+        { status: 500 },
       );
+    }
+
+    // 2) Load user settings for reminder preferences
+    const userIds = [...new Set((switches ?? []).map((s: any) => s.user_id))];
+
+    const { data: settingsData } = await supabase
+      .from("user_settings")
+      .select("user_id,reminder_enabled")
+      .in("user_id", userIds);
+
+    // Build a map of user_id -> reminder_enabled (default true if no settings)
+    const userSettingsMap = new Map<string, boolean>();
+    for (const setting of (settingsData ?? []) as UserSettings[]) {
+      userSettingsMap.set(setting.user_id, setting.reminder_enabled);
+    }
+
+    // 3) Get user emails for sending reminders
+    const userEmailMap = new Map<string, string>();
+    for (const userId of userIds) {
+      try {
+        const { data: userData } =
+          await supabase.auth.admin.getUserById(userId);
+        if (userData?.user?.email) {
+          userEmailMap.set(userId, userData.user.email);
+        }
+      } catch {
+        // Skip if we can't get the user
+      }
     }
 
     const now = new Date();
     const due: DbSwitch[] = [];
+    const reminders50: DbSwitch[] = [];
+    const reminders90: DbSwitch[] = [];
 
     for (const s of (switches ?? []) as DbSwitch[]) {
       const base = s.last_checkin_at ?? s.created_at;
+      const baseTime = new Date(base).getTime();
+      const intervalMs = s.interval_days * 24 * 60 * 60 * 1000;
       const dueAt = addDays(base, s.interval_days);
+
       if (!dueAt) continue;
 
+      const elapsed = now.getTime() - baseTime;
+      const percentElapsed = elapsed / intervalMs;
+
+      // Check if due for trigger
       const alreadySentForThisCycle =
         s.last_alert_sent_at &&
-        new Date(s.last_alert_sent_at).getTime() >= new Date(base).getTime();
+        new Date(s.last_alert_sent_at).getTime() >= baseTime;
 
       if (now.getTime() >= dueAt.getTime() && !alreadySentForThisCycle) {
         due.push(s);
+        continue; // Don't send reminders if we're about to trigger
+      }
+
+      // Check if user has reminders enabled (default true)
+      const reminderEnabled = userSettingsMap.get(s.user_id) ?? true;
+      if (!reminderEnabled) continue;
+
+      // Check for 50% reminder
+      const already50 =
+        s.reminder_50_sent_at &&
+        new Date(s.reminder_50_sent_at).getTime() >= baseTime;
+
+      if (percentElapsed >= 0.5 && !already50) {
+        reminders50.push(s);
+      }
+
+      // Check for 90% reminder
+      const already90 =
+        s.reminder_90_sent_at &&
+        new Date(s.reminder_90_sent_at).getTime() >= baseTime;
+
+      if (percentElapsed >= 0.9 && !already90) {
+        reminders90.push(s);
       }
     }
 
     let emailsSent = 0;
     let emailsFailed = 0;
+    let remindersSent = 0;
 
     const failures: Array<{
       switchId: string;
@@ -109,7 +177,151 @@ export async function GET(req: Request) {
       code?: string | number;
     }> = [];
 
-    // 2) Send emails for due switches
+    // 4) Send 50% reminder emails
+    for (const s of reminders50) {
+      const userEmail = userEmailMap.get(s.user_id);
+      if (!userEmail) continue;
+
+      const dueAt = addDays(s.last_checkin_at ?? s.created_at, s.interval_days);
+      const dueFormatted = dueAt
+        ? dueAt.toLocaleDateString("en-US", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })
+        : "soon";
+
+      try {
+        await client.sendEmail({
+          From: `Switchifye <${fromEmail}>`,
+          To: userEmail,
+          ReplyTo: replyTo,
+          Subject: `Reminder: "${s.name}" is halfway to triggering`,
+          TextBody: `Hi,
+
+Your switch "${s.name}" is 50% of the way through its check-in interval.
+
+It will trigger on ${dueFormatted} if you don't check in.
+
+Log in to Switchifye to check in now:
+https://switchifye.com/dashboard
+
+—
+Switchifye
+Questions? Email support@switchifye.com`,
+          HtmlBody: `
+            <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.6;">
+              <h2 style="margin: 0 0 12px;">Halfway Reminder</h2>
+              <p style="margin: 0 0 16px;">
+                Your switch "<strong>${escapeHtml(s.name)}</strong>" is 50% of the way through its check-in interval.
+              </p>
+              <p style="margin: 0 0 16px;">
+                It will trigger on <strong>${dueFormatted}</strong> if you don't check in.
+              </p>
+              <p style="margin: 0 0 24px;">
+                <a href="https://switchifye.com/dashboard" style="background: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Check in now</a>
+              </p>
+              <hr style="margin: 24px 0; border: none; border-top: 1px solid #eee;" />
+              <p style="font-size: 12px; color: #999; margin: 0;">
+                —<br />Switchifye<br />
+                <a href="https://switchifye.com">switchifye.com</a>
+              </p>
+            </div>
+          `,
+          MessageStream: "alerts",
+        });
+
+        remindersSent += 1;
+
+        await supabase
+          .from("switches")
+          .update({ reminder_50_sent_at: now.toISOString() })
+          .eq("id", s.id);
+      } catch (err: any) {
+        emailsFailed += 1;
+        failures.push({
+          switchId: s.id,
+          to: userEmail,
+          error: err?.message ?? "Unknown Postmark error",
+          code: err?.code,
+        });
+      }
+    }
+
+    // 5) Send 90% reminder emails
+    for (const s of reminders90) {
+      const userEmail = userEmailMap.get(s.user_id);
+      if (!userEmail) continue;
+
+      const dueAt = addDays(s.last_checkin_at ?? s.created_at, s.interval_days);
+      const dueFormatted = dueAt
+        ? dueAt.toLocaleDateString("en-US", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })
+        : "very soon";
+
+      try {
+        await client.sendEmail({
+          From: `Switchifye <${fromEmail}>`,
+          To: userEmail,
+          ReplyTo: replyTo,
+          Subject: `Urgent: "${s.name}" triggers soon`,
+          TextBody: `Hi,
+
+Your switch "${s.name}" is about to trigger!
+
+It will trigger on ${dueFormatted} if you don't check in.
+
+Log in to Switchifye to check in now:
+https://switchifye.com/dashboard
+
+—
+Switchifye
+Questions? Email support@switchifye.com`,
+          HtmlBody: `
+            <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.6;">
+              <h2 style="margin: 0 0 12px; color: #dc2626;">⚠️ Urgent Reminder</h2>
+              <p style="margin: 0 0 16px;">
+                Your switch "<strong>${escapeHtml(s.name)}</strong>" is about to trigger!
+              </p>
+              <p style="margin: 0 0 16px;">
+                It will trigger on <strong>${dueFormatted}</strong> if you don't check in.
+              </p>
+              <p style="margin: 0 0 24px;">
+                <a href="https://switchifye.com/dashboard" style="background: #dc2626; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Check in now</a>
+              </p>
+              <hr style="margin: 24px 0; border: none; border-top: 1px solid #eee;" />
+              <p style="font-size: 12px; color: #999; margin: 0;">
+                —<br />Switchifye<br />
+                <a href="https://switchifye.com">switchifye.com</a>
+              </p>
+            </div>
+          `,
+          MessageStream: "alerts",
+        });
+
+        remindersSent += 1;
+
+        await supabase
+          .from("switches")
+          .update({ reminder_90_sent_at: now.toISOString() })
+          .eq("id", s.id);
+      } catch (err: any) {
+        emailsFailed += 1;
+        failures.push({
+          switchId: s.id,
+          to: userEmail,
+          error: err?.message ?? "Unknown Postmark error",
+          code: err?.code,
+        });
+      }
+    }
+
+    // 6) Send trigger emails for due switches
     for (const s of due) {
       const { data: msg, error: msgErr } = await supabase
         .from("messages")
@@ -214,14 +426,17 @@ Questions? Email support@switchifye.com`,
       ok: true,
       checked: (switches ?? []).length,
       due: due.length,
+      reminders50: reminders50.length,
+      reminders90: reminders90.length,
       emailsSent,
+      remindersSent,
       emailsFailed,
       failures: failures.slice(0, 25),
     });
   } catch (err: any) {
     return NextResponse.json(
       { ok: false, error: err?.message ?? "Unknown error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
