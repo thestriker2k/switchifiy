@@ -11,8 +11,8 @@ interface MessageComposerProps {
   disabled?: boolean;
   focusTarget: FocusTarget;
   setFocusTarget: (v: FocusTarget) => void;
-  subjectRef: React.RefObject<HTMLInputElement>;
-  bodyRef: React.RefObject<HTMLTextAreaElement>;
+  subjectRef: React.RefObject<HTMLInputElement | null>;
+  bodyRef: React.RefObject<HTMLTextAreaElement | null>;
   onInsertToken: (token: string) => void;
   onFormat: (kind: "bold" | "italic") => void;
   mode: "create" | "edit";
@@ -230,7 +230,7 @@ export function MessageComposer({
             Subject
           </span>
           <input
-            ref={subjectRef as React.RefObject<HTMLInputElement>}
+            ref={subjectRef}
             type="text"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
@@ -249,7 +249,7 @@ export function MessageComposer({
           `}
         >
           <textarea
-            ref={bodyRef as React.RefObject<HTMLTextAreaElement>}
+            ref={bodyRef}
             value={body}
             onChange={(e) => setBody(e.target.value)}
             onFocus={() => setFocusTarget({ mode, field: "body" })}
