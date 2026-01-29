@@ -7,7 +7,7 @@ import { stripe, STRIPE_PRICES } from "@/lib/stripe/server";
 // Create Supabase admin client for server-side operations
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
 export async function POST(request: NextRequest) {
@@ -18,21 +18,21 @@ export async function POST(request: NextRequest) {
     if (!planId || !userId || !userEmail) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (planId !== "starter" && planId !== "pro") {
       return NextResponse.json(
         { error: "Invalid plan selected" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Get the correct price ID
     const priceId = isYearly
-      ? STRIPE_PRICES[planId].yearly
-      : STRIPE_PRICES[planId].monthly;
+      ? STRIPE_PRICES[planId as keyof typeof STRIPE_PRICES].yearly
+      : STRIPE_PRICES[planId as keyof typeof STRIPE_PRICES].monthly;
 
     // Check if user already has a Stripe customer ID
     const { data: subscription } = await supabase
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     console.error("Checkout error:", error);
     return NextResponse.json(
       { error: "Failed to create checkout session" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
