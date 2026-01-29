@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Subscription will be canceled at the end of the billing period",
       cancelAt: canceledSubscription.cancel_at,
-      currentPeriodEnd: canceledSubscription.current_period_end,
+      currentPeriodEnd: (canceledSubscription as any).current_period_end,
     });
   } catch (error) {
     console.error("Error canceling subscription:", error);
