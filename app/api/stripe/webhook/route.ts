@@ -58,9 +58,9 @@ export async function POST(request: NextRequest) {
                 stripe_customer_id: session.customer as string,
                 stripe_subscription_id: subscription.id,
                 current_period_end: new Date(
-                  subscription.current_period_end * 1000
+                  (subscription as any).current_period_end * 1000
                 ).toISOString(),
-                cancel_at_period_end: subscription.cancel_at_period_end,
+                cancel_at_period_end: (subscription as any).cancel_at_period_end,
                 updated_at: new Date().toISOString(),
               })
               .eq("user_id", userId);
@@ -96,9 +96,9 @@ export async function POST(request: NextRequest) {
               plan_id: planId ?? "free",
               status: subscription.status === "active" ? "active" : subscription.status,
               current_period_end: new Date(
-                subscription.current_period_end * 1000
+                (subscription as any).current_period_end * 1000
               ).toISOString(),
-              cancel_at_period_end: subscription.cancel_at_period_end,
+              cancel_at_period_end: (subscription as any).cancel_at_period_end,
               updated_at: new Date().toISOString(),
             })
             .eq("user_id", existingSub.user_id);
