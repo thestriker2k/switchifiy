@@ -54,12 +54,8 @@ export default function DashboardPage() {
   } = useSwitches();
 
   // Recipients hook
-  const {
-    recipients,
-    loadRecipients,
-    createRecipient,
-    validateNewRecipient,
-  } = useRecipients();
+  const { recipients, loadRecipients, createRecipient, validateNewRecipient } =
+    useRecipients();
 
   // Local UI state
   const [showCreate, setShowCreate] = useState(false);
@@ -82,7 +78,7 @@ export default function DashboardPage() {
   function handleOpenCreate() {
     if (!canCreateSwitch) {
       setError(
-        `You've reached your ${planName} plan limit of ${maxSwitches} switch${maxSwitches === 1 ? "" : "es"}. Please upgrade to create more.`
+        `You've reached your ${planName} plan limit of ${maxSwitches} switch${maxSwitches === 1 ? "" : "es"}. Please upgrade to create more.`,
       );
       return;
     }
@@ -114,7 +110,7 @@ export default function DashboardPage() {
     setEditingId(null);
     await Promise.all([refreshOverview(), loadSwitchRecipients()]);
     await refreshUsage();
-    
+
     // Scroll to top of page
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -197,22 +193,22 @@ export default function DashboardPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard 
-          title="Active" 
-          value={activeCount} 
-          icon={Icons.active} 
+        <StatCard
+          title="Active"
+          value={activeCount}
+          icon={Icons.active}
           onClick={() => scrollToSection("active-switches")}
         />
-        <StatCard 
-          title="Inactive" 
-          value={inactiveCount} 
-          icon={Icons.inactive} 
+        <StatCard
+          title="Inactive"
+          value={inactiveCount}
+          icon={Icons.inactive}
           onClick={() => scrollToSection("inactive-switches")}
         />
-        <StatCard 
-          title="Completed" 
-          value={completedCount} 
-          icon={Icons.completed} 
+        <StatCard
+          title="Completed"
+          value={completedCount}
+          icon={Icons.completed}
           onClick={() => scrollToSection("completed-switches")}
         />
         <StatCard
@@ -224,6 +220,7 @@ export default function DashboardPage() {
           }
           footer={browserTZ}
           icon={Icons.clock}
+          compact
         />
       </div>
 

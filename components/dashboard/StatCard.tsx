@@ -4,29 +4,39 @@ interface StatCardProps {
   footer?: string;
   icon?: React.ReactNode;
   onClick?: () => void;
+  compact?: boolean;
 }
 
-export function StatCard({ title, value, footer, icon, onClick }: StatCardProps) {
-  const Component = onClick ? 'button' : 'div';
-  
+export function StatCard({
+  title,
+  value,
+  footer,
+  icon,
+  onClick,
+  compact,
+}: StatCardProps) {
+  const Component = onClick ? "button" : "div";
+
   return (
     <Component
       onClick={onClick}
       className={`bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-all text-left w-full ${
-        onClick ? 'cursor-pointer hover:border-gray-200' : ''
+        onClick ? "cursor-pointer hover:border-gray-200" : ""
       }`}
     >
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <p className="text-sm text-gray-500 font-medium">{title}</p>
-          <p className="text-2xl font-semibold text-gray-900 tracking-tight">{value}</p>
+          <p
+            className={`font-semibold text-gray-900 tracking-tight ${
+              compact ? "text-sm" : "text-2xl"
+            }`}
+          >
+            {value}
+          </p>
           {footer && <p className="text-xs text-gray-400">{footer}</p>}
         </div>
-        {icon && (
-          <div className="p-2 bg-gray-50 rounded-xl">
-            {icon}
-          </div>
-        )}
+        {icon && <div className="p-2 bg-gray-50 rounded-xl">{icon}</div>}
       </div>
     </Component>
   );
