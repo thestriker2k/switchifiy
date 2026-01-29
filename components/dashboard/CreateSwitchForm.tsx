@@ -335,10 +335,10 @@ export function CreateSwitchForm({
                 }}
                 disabled={creating}
               >
-                <option value="">Add existing contact…</option>
+                <option value="">Add existing contact...</option>
                 {recipients.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {r.name} — {r.email}
+                    {r.name} - {r.email}
                   </option>
                 ))}
               </select>
@@ -346,16 +346,16 @@ export function CreateSwitchForm({
 
             <div className="p-4 bg-white border border-gray-200 rounded-xl space-y-3">
               <p className="text-sm font-medium text-gray-700">Or add new contact</p>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
-                  className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+                  className="w-full sm:flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
                   placeholder="Name"
                   value={newRecipientName}
                   onChange={(e) => setNewRecipientName(e.target.value)}
                   disabled={creating || addingContact}
                 />
                 <input
-                  className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+                  className="w-full sm:flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
                   placeholder="Email"
                   value={newRecipientEmail}
                   onChange={(e) => setNewRecipientEmail(e.target.value)}
@@ -365,7 +365,7 @@ export function CreateSwitchForm({
                   type="button"
                   onClick={handleAddNewRecipient}
                   disabled={creating || addingContact}
-                  className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+                  className="w-full sm:w-auto px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
                 >
                   {addingContact ? "..." : "Add"}
                 </button>

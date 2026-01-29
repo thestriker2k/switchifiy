@@ -191,6 +191,24 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Create Switch Form */}
+      {showCreate && (
+        <CreateSwitchForm
+          recipients={recipients}
+          onClose={handleCloseCreate}
+          onSuccess={handleCreateSuccess}
+          onError={setError}
+          canCreateSwitch={canCreateSwitch}
+          canAddRecipient={canAddRecipient}
+          planName={planName}
+          maxSwitches={maxSwitches}
+          maxRecipients={maxRecipients}
+          getNextDefaultSwitchName={getNextDefaultSwitchName}
+          onCreateRecipient={handleCreateRecipient}
+          refreshUsage={refreshUsage}
+        />
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -216,31 +234,13 @@ export default function DashboardPage() {
           value={
             lastCheckInAt
               ? formatDateTime(new Date(lastCheckInAt), browserTZ)
-              : "—"
+              : "â€”"
           }
           footer={browserTZ}
           icon={Icons.clock}
           compact
         />
       </div>
-
-      {/* Create Switch Form */}
-      {showCreate && (
-        <CreateSwitchForm
-          recipients={recipients}
-          onClose={handleCloseCreate}
-          onSuccess={handleCreateSuccess}
-          onError={setError}
-          canCreateSwitch={canCreateSwitch}
-          canAddRecipient={canAddRecipient}
-          planName={planName}
-          maxSwitches={maxSwitches}
-          maxRecipients={maxRecipients}
-          getNextDefaultSwitchName={getNextDefaultSwitchName}
-          onCreateRecipient={handleCreateRecipient}
-          refreshUsage={refreshUsage}
-        />
-      )}
 
       {/* Active Switches */}
       <section className="space-y-4">
