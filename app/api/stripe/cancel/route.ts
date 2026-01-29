@@ -3,12 +3,12 @@ import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16",
+  apiVersion: "2025-05-28.basil",
 });
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
 export async function POST(request: NextRequest) {
@@ -16,7 +16,10 @@ export async function POST(request: NextRequest) {
     const { userId } = await request.json();
 
     if (!userId) {
-      return NextResponse.json({ error: "User ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 400 },
+      );
     }
 
     // Get the user's subscription from database
@@ -30,14 +33,14 @@ export async function POST(request: NextRequest) {
       console.error("Error fetching subscription:", subError);
       return NextResponse.json(
         { error: "Failed to fetch subscription" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     if (!subscription?.stripe_subscription_id) {
       return NextResponse.json(
         { error: "No active subscription found" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -46,7 +49,7 @@ export async function POST(request: NextRequest) {
       subscription.stripe_subscription_id,
       {
         cancel_at_period_end: true,
-      }
+      },
     );
 
     // Update the subscription status in database
@@ -72,8 +75,13 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error canceling subscription:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to cancel subscription" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to cancel subscription",
+      },
+      { status: 500 },
     );
   }
 }
