@@ -10,3 +10,4 @@ export { MessagePreview } from "./MessagePreview";
 export { SwitchCard } from "./SwitchCard";
 export { SwitchEditor } from "./SwitchEditor";
 export { CreateSwitchForm } from "./CreateSwitchForm";
+export { MessageComposer } from "./MessageComposer";

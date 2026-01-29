@@ -4,11 +4,20 @@ import { useState, useRef, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
 import type { RecipientRow, FocusTarget } from "@/lib/types";
 import type { AllowedInterval } from "@/lib/constants";
-import { ALLOWED_INTERVALS, DEFAULT_MESSAGE_SUBJECT, DEFAULT_MESSAGE_BODY } from "@/lib/constants";
-import { renderWithTokens, insertTokenAtCursor, wrapSelectionWith, getBrowserTimeZone } from "@/lib/utils";
+import {
+  ALLOWED_INTERVALS,
+  DEFAULT_MESSAGE_SUBJECT,
+  DEFAULT_MESSAGE_BODY,
+} from "@/lib/constants";
+import {
+  renderWithTokens,
+  insertTokenAtCursor,
+  wrapSelectionWith,
+  getBrowserTimeZone,
+} from "@/lib/utils";
 
 import { IntervalButtons } from "./IntervalButtons";
-import { MessageToolbar } from "./MessageToolbar";
+import { MessageComposer } from "./MessageComposer";
 import { MessagePreview } from "./MessagePreview";
 import { Icons } from "./Icons";
 
@@ -23,7 +32,14 @@ interface CreateSwitchFormProps {
   maxSwitches: number;
   maxRecipients: number;
   getNextDefaultSwitchName: () => string;
-  onCreateRecipient: (name: string, email: string) => Promise<{ data: RecipientRow | null; error: string | null; isExisting: boolean }>;
+  onCreateRecipient: (
+    name: string,
+    email: string,
+  ) => Promise<{
+    data: RecipientRow | null;
+    error: string | null;
+    isExisting: boolean;
+  }>;
   refreshUsage: () => Promise<void>;
 }
 
@@ -44,12 +60,19 @@ export function CreateSwitchForm({
   const browserTZ = useMemo(() => getBrowserTimeZone("UTC"), []);
 
   const [createName, setCreateName] = useState("");
-  const [createIntervalDays, setCreateIntervalDays] = useState<AllowedInterval>(30);
-  const [createMessageSubject, setCreateMessageSubject] = useState(DEFAULT_MESSAGE_SUBJECT);
-  const [createMessageBody, setCreateMessageBody] = useState(DEFAULT_MESSAGE_BODY);
+  const [createIntervalDays, setCreateIntervalDays] =
+    useState<AllowedInterval>(30);
+  const [createMessageSubject, setCreateMessageSubject] = useState(
+    DEFAULT_MESSAGE_SUBJECT,
+  );
+  const [createMessageBody, setCreateMessageBody] =
+    useState(DEFAULT_MESSAGE_BODY);
 
-  const [createRecipientIds, setCreateRecipientIds] = useState<Set<string>>(new Set());
-  const [createSelectedRecipientId, setCreateSelectedRecipientId] = useState("");
+  const [createRecipientIds, setCreateRecipientIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [createSelectedRecipientId, setCreateSelectedRecipientId] =
+    useState("");
   const [newRecipientName, setNewRecipientName] = useState("");
   const [newRecipientEmail, setNewRecipientEmail] = useState("");
   const [addingContact, setAddingContact] = useState(false);
@@ -64,7 +87,8 @@ export function CreateSwitchForm({
   const createBodyRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Preview
-  const createPreviewRecipient = recipients.find((r) => r.id === createPreviewRecipientId) ?? null;
+  const createPreviewRecipient =
+    recipients.find((r) => r.id === createPreviewRecipientId) ?? null;
   const createPreview = renderWithTokens({
     subject: createMessageSubject,
     body: createMessageBody,
@@ -72,7 +96,10 @@ export function CreateSwitchForm({
     intervalDays: createIntervalDays,
     createdAtIso: new Date().toISOString(),
     previewRecipient: createPreviewRecipient
-      ? { name: createPreviewRecipient.name, email: createPreviewRecipient.email }
+      ? {
+          name: createPreviewRecipient.name,
+          email: createPreviewRecipient.email,
+        }
       : null,
   });
 
@@ -134,7 +161,9 @@ export function CreateSwitchForm({
 
   async function handleAddNewRecipient() {
     if (!canAddRecipient) {
-      onError(`You've reached your ${planName} plan limit of ${maxRecipients} recipients. Please upgrade to add more.`);
+      onError(
+        `You've reached your ${planName} plan limit of ${maxRecipients} recipients. Please upgrade to add more.`,
+      );
       return;
     }
 
@@ -167,12 +196,16 @@ export function CreateSwitchForm({
 
   async function handleCreateSwitch() {
     if (!canCreateSwitch) {
-      onError(`You've reached your ${planName} plan limit of ${maxSwitches} switch${maxSwitches === 1 ? "" : "es"}. Please upgrade to create more.`);
+      onError(
+        `You've reached your ${planName} plan limit of ${maxSwitches} switch${maxSwitches === 1 ? "" : "es"}. Please upgrade to create more.`,
+      );
       return;
     }
 
     if (!ALLOWED_INTERVALS.includes(createIntervalDays)) {
-      onError("Interval must be one of: 24 hours, 7, 14, 30, 60, 90, or 365 days.");
+      onError(
+        "Interval must be one of: 24 hours, 7, 14, 30, 60, 90, or 365 days.",
+      );
       return;
     }
     if (!createMessageBody.trim()) {
@@ -251,7 +284,9 @@ export function CreateSwitchForm({
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Create a Switch</h2>
+          <h2 className="text-lg font-semibold text-gray-900">
+            Create a Switch
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -266,7 +301,9 @@ export function CreateSwitchForm({
         {/* Name + Interval */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Switch name</label>
+            <label className="text-sm font-medium text-gray-700">
+              Switch name
+            </label>
             <input
               className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
               value={createName}
@@ -289,7 +326,9 @@ export function CreateSwitchForm({
           <h3 className="text-sm font-semibold text-gray-900">Recipients</h3>
 
           {createRecipientIds.size === 0 ? (
-            <p className="text-sm text-gray-500">Select at least 1 recipient below.</p>
+            <p className="text-sm text-gray-500">
+              Select at least 1 recipient below.
+            </p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {Array.from(createRecipientIds).map((id) => {
@@ -312,8 +351,18 @@ export function CreateSwitchForm({
                       disabled={creating}
                       aria-label="Remove recipient"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -345,7 +394,9 @@ export function CreateSwitchForm({
             )}
 
             <div className="p-4 bg-white border border-gray-200 rounded-xl space-y-3">
-              <p className="text-sm font-medium text-gray-700">Or add new contact</p>
+              <p className="text-sm font-medium text-gray-700">
+                Or add new contact
+              </p>
               <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   className="w-full sm:flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
@@ -378,34 +429,21 @@ export function CreateSwitchForm({
         <div className="pt-4 border-t border-gray-100 space-y-4">
           <h3 className="text-sm font-semibold text-gray-900">Message</h3>
 
-          <MessageToolbar
-            onFormat={handleFormat}
-            onInsertToken={handleInsertToken}
-            disabled={!focusTarget || focusTarget.mode !== "create"}
-          />
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="space-y-3">
-              <input
-                ref={createSubjectRef}
-                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
-                placeholder="Subject line"
-                value={createMessageSubject}
-                onChange={(e) => setCreateMessageSubject(e.target.value)}
-                onFocus={() => setFocusTarget({ mode: "create", field: "subject" })}
-                disabled={creating}
-              />
-
-              <textarea
-                ref={createBodyRef}
-                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm min-h-[180px] resize-none focus:outline-none focus:ring-2 focus:ring-gray-900/10"
-                placeholder="Write your message here..."
-                value={createMessageBody}
-                onChange={(e) => setCreateMessageBody(e.target.value)}
-                onFocus={() => setFocusTarget({ mode: "create", field: "body" })}
-                disabled={creating}
-              />
-            </div>
+            <MessageComposer
+              subject={createMessageSubject}
+              setSubject={setCreateMessageSubject}
+              body={createMessageBody}
+              setBody={setCreateMessageBody}
+              disabled={creating}
+              focusTarget={focusTarget}
+              setFocusTarget={setFocusTarget}
+              subjectRef={createSubjectRef}
+              bodyRef={createBodyRef}
+              onInsertToken={handleInsertToken}
+              onFormat={handleFormat}
+              mode="create"
+            />
 
             <MessagePreview
               title="Preview"
@@ -413,7 +451,7 @@ export function CreateSwitchForm({
               setPreviewAsId={setCreatePreviewRecipientId}
               subject={createPreview.subject}
               body={createPreview.body}
-              recipients={recipients}
+              recipients={recipients.filter((r) => createRecipientIds.has(r.id))}
             />
           </div>
         </div>
@@ -421,8 +459,18 @@ export function CreateSwitchForm({
         {/* Recipient Error */}
         {recipientError && (
           <div className="flex items-center gap-2 text-sm text-red-600">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             {recipientError}
           </div>

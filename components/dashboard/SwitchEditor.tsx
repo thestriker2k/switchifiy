@@ -8,7 +8,7 @@ import { ALLOWED_INTERVALS, DEFAULT_MESSAGE_SUBJECT, DEFAULT_MESSAGE_BODY } from
 import { renderWithTokens, insertTokenAtCursor, wrapSelectionWith, getBrowserTimeZone } from "@/lib/utils";
 
 import { IntervalButtons } from "./IntervalButtons";
-import { MessageToolbar } from "./MessageToolbar";
+import { MessageComposer } from "./MessageComposer";
 import { MessagePreview } from "./MessagePreview";
 
 interface SwitchEditorProps {
@@ -229,7 +229,7 @@ export function SwitchEditor({
     setSavingMessage(false);
 
     await onSave();
-    setSaveNotice("Saved ✓");
+    setSaveNotice("Saved");
     setTimeout(() => setSaveNotice(null), 1500);
   }
 
@@ -455,26 +455,26 @@ export function SwitchEditor({
               }}
               disabled={deleting}
             >
-              <option value="">Add existing contact…</option>
+              <option value="">Add existing contact...</option>
               {recipients.map((r) => (
                 <option key={r.id} value={r.id}>
-                  {r.name} — {r.email}
+                  {r.name} - {r.email}
                 </option>
               ))}
             </select>
 
             <div className="p-4 bg-white border border-gray-200 rounded-xl space-y-3">
               <p className="text-sm font-medium text-gray-700">Or add new contact</p>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
-                  className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+                  className="w-full sm:flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
                   placeholder="Name"
                   value={editNewRecipientName}
                   onChange={(e) => setEditNewRecipientName(e.target.value)}
                   disabled={deleting || addingContactInEditor}
                 />
                 <input
-                  className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+                  className="w-full sm:flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
                   placeholder="Email"
                   value={editNewRecipientEmail}
                   onChange={(e) => setEditNewRecipientEmail(e.target.value)}
@@ -484,7 +484,7 @@ export function SwitchEditor({
                   type="button"
                   onClick={handleAddNewRecipient}
                   disabled={deleting || addingContactInEditor}
-                  className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+                  className="w-full sm:w-auto px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
                 >
                   {addingContactInEditor ? "..." : "Add"}
                 </button>
@@ -498,36 +498,33 @@ export function SwitchEditor({
       <div className="pt-4 border-t border-gray-200 space-y-4">
         <h4 className="text-sm font-semibold text-gray-900">Message</h4>
 
-        {!isCompleted && (
-          <MessageToolbar
-            onFormat={handleFormat}
-            onInsertToken={handleInsertToken}
-            disabled={!focusTarget || focusTarget.mode !== "edit"}
-          />
-        )}
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="space-y-3">
-            <input
-              ref={editSubjectRef}
-              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
-              placeholder="Subject"
-              value={messageSubject}
-              onChange={(e) => setMessageSubject(e.target.value)}
-              onFocus={() => setFocusTarget({ mode: "edit", field: "subject" })}
-              disabled={deleting || isCompleted}
+          {isCompleted ? (
+            // Read-only view for completed switches
+            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+              <div className="text-xs text-gray-500">
+                Subject: <span className="font-medium text-gray-900">{messageSubject}</span>
+              </div>
+              <div className="border-t border-gray-100 pt-3">
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">{messageBody}</p>
+              </div>
+            </div>
+          ) : (
+            <MessageComposer
+              subject={messageSubject}
+              setSubject={setMessageSubject}
+              body={messageBody}
+              setBody={setMessageBody}
+              disabled={deleting}
+              focusTarget={focusTarget}
+              setFocusTarget={setFocusTarget}
+              subjectRef={editSubjectRef}
+              bodyRef={editBodyRef}
+              onInsertToken={handleInsertToken}
+              onFormat={handleFormat}
+              mode="edit"
             />
-
-            <textarea
-              ref={editBodyRef}
-              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm min-h-[180px] resize-none focus:outline-none focus:ring-2 focus:ring-gray-900/10"
-              placeholder="Message body..."
-              value={messageBody}
-              onChange={(e) => setMessageBody(e.target.value)}
-              onFocus={() => setFocusTarget({ mode: "edit", field: "body" })}
-              disabled={deleting || isCompleted}
-            />
-          </div>
+          )}
 
           <MessagePreview
             title="Preview"
@@ -535,7 +532,7 @@ export function SwitchEditor({
             setPreviewAsId={setEditPreviewRecipientId}
             subject={editPreview.subject}
             body={editPreview.body}
-            recipients={recipients}
+            recipients={attachedRecipientsForEditing}
           />
         </div>
       </div>
