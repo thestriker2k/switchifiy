@@ -96,48 +96,138 @@ const PLANS: Plan[] = [
 
 const Icons = {
   bell: (
-    <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+    <svg
+      className="w-5 h-5 text-teal-600"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+      />
     </svg>
   ),
   creditCard: (
-    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+    <svg
+      className="w-5 h-5 text-blue-600"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+      />
     </svg>
   ),
   user: (
-    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    <svg
+      className="w-5 h-5 text-gray-600"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+      />
     </svg>
   ),
   trash: (
-    <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+    <svg
+      className="w-5 h-5 text-red-500"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+      />
     </svg>
   ),
   check: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+    <svg
+      className="w-4 h-4"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M5 13l4 4L19 7"
+      />
     </svg>
   ),
   error: (
-    <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    <svg
+      className="w-5 h-5 text-red-500 flex-shrink-0"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
     </svg>
   ),
   success: (
-    <svg className="w-5 h-5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+    <svg
+      className="w-5 h-5 text-emerald-500 flex-shrink-0"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M5 13l4 4L19 7"
+      />
     </svg>
   ),
   close: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M6 18L18 6M6 6l12 12"
+      />
     </svg>
   ),
   sparkles: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
+      />
     </svg>
   ),
 };
@@ -166,9 +256,7 @@ function Toggle({
       onClick={() => onChange(!checked)}
       className={[
         "relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200",
-        checked
-          ? "bg-gradient-to-r from-blue-500 to-[#3EEBBE]"
-          : "bg-gray-200",
+        checked ? "bg-gradient-to-r from-blue-500 to-[#3EEBBE]" : "bg-gray-200",
         disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
       ].join(" ")}
     >
@@ -199,7 +287,9 @@ function UsageBar({
     <div className="space-y-2">
       <div className="flex items-center justify-between text-sm">
         <span className="text-gray-500">{label}</span>
-        <span className={`font-semibold ${isAtLimit ? "text-red-600" : "text-gray-900"}`}>
+        <span
+          className={`font-semibold ${isAtLimit ? "text-red-600" : "text-gray-900"}`}
+        >
           {used} / {isUnlimited ? "∞" : limit}
         </span>
       </div>
@@ -261,11 +351,15 @@ function SectionCard({
     >
       <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
         <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-xl ${variant === "danger" ? "bg-red-50" : "bg-gray-100"}`}>
+          <div
+            className={`p-2 rounded-xl ${variant === "danger" ? "bg-red-50" : "bg-gray-100"}`}
+          >
             {icon}
           </div>
           <div>
-            <h2 className={`font-semibold ${variant === "danger" ? "text-red-600" : "text-gray-900"}`}>
+            <h2
+              className={`font-semibold ${variant === "danger" ? "text-red-600" : "text-gray-900"}`}
+            >
               {title}
             </h2>
             <p className="text-sm text-gray-500">{description}</p>
@@ -321,8 +415,18 @@ function DowngradeModal({
         <div className="p-6 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-amber-50 rounded-xl">
-              <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <svg
+                className="w-6 h-6 text-amber-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
               </svg>
             </div>
             <div>
@@ -340,26 +444,29 @@ function DowngradeModal({
         <div className="p-6 space-y-4">
           <p className="text-sm text-gray-600">
             You'll keep access to all {currentPlanName} features until{" "}
-            <span className="font-semibold text-gray-900">{formattedDate}</span>.
-            After that, your account will switch to the Free plan.
+            <span className="font-semibold text-gray-900">{formattedDate}</span>
+            . After that, your account will switch to the Free plan.
           </p>
 
           <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-            <p className="text-sm font-medium text-gray-900">On the Free plan, you'll have:</p>
+            <p className="text-sm font-medium text-gray-900">
+              On the Free plan, you'll have:
+            </p>
             <ul className="text-sm text-gray-600 space-y-1">
               <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
-                1 switch (instead of {currentPlanName === "Starter" ? "5" : "25"})
+                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full" />1
+                switch (instead of {currentPlanName === "Starter" ? "5" : "25"})
               </li>
               <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
-                2 contacts (instead of {currentPlanName === "Starter" ? "10" : "50"})
+                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full" />2
+                contacts (instead of{" "}
+                {currentPlanName === "Starter" ? "10" : "50"})
               </li>
             </ul>
           </div>
 
           <p className="text-xs text-gray-500">
-            If you have more switches or contacts than the Free plan allows, 
+            If you have more switches or contacts than the Free plan allows,
             you'll need to remove some after downgrading.
           </p>
         </div>
@@ -469,7 +576,7 @@ function UpgradeModal({
             {PLANS.filter((p) => p.id !== "enterprise").map((plan) => {
               const isCurrentPlan = plan.id === currentPlanId;
               const currentIndex = PLANS.findIndex(
-                (p) => p.id === currentPlanId
+                (p) => p.id === currentPlanId,
               );
               const planIndex = PLANS.findIndex((p) => p.id === plan.id);
               const isDowngrade = planIndex < currentIndex;
@@ -529,7 +636,9 @@ function UpgradeModal({
                         key={idx}
                         className="flex items-start gap-2 text-sm text-gray-600"
                       >
-                        <span className="text-[#3EEBBE] mt-0.5">{Icons.check}</span>
+                        <span className="text-[#3EEBBE] mt-0.5">
+                          {Icons.check}
+                        </span>
                         {feature}
                       </li>
                     ))}
@@ -564,8 +673,18 @@ function UpgradeModal({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-gradient-to-br from-blue-500/10 to-[#3EEBBE]/10 rounded-xl">
-                  <svg className="w-5 h-5 text-[#3EEBBE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  <svg
+                    className="w-5 h-5 text-[#3EEBBE]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
+                    />
                   </svg>
                 </div>
                 <div>
@@ -573,7 +692,8 @@ function UpgradeModal({
                     Need a custom solution?
                   </h3>
                   <p className="text-sm text-gray-500 mt-0.5">
-                    Get unlimited switches, custom branding, and dedicated support.
+                    Get unlimited switches, custom branding, and dedicated
+                    support.
                   </p>
                 </div>
               </div>
@@ -709,7 +829,7 @@ function SettingsPageContent() {
         reminder_enabled: next,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: "user_id" }
+      { onConflict: "user_id" },
     );
 
     setSaving(false);
@@ -782,7 +902,7 @@ function SettingsPageContent() {
 
       setShowDowngradeModal(false);
       setSaveNotice(
-        `Your subscription has been canceled. You'll have access to ${planName} features until your billing period ends.`
+        `Your subscription has been canceled. You'll have access to ${planName} features until your billing period ends.`,
       );
 
       // Refresh the page after a moment to update subscription status
@@ -870,8 +990,8 @@ function SettingsPageContent() {
         title="Notifications"
         description="Configure how and when you receive reminders"
       >
-        <div className="flex items-center justify-between gap-4">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex-1">
             <div className="text-sm font-medium text-gray-900">
               Check-in reminders
             </div>
@@ -879,13 +999,19 @@ function SettingsPageContent() {
               Receive email reminders at 50% and 90% of your switch interval
               before it triggers.
             </p>
+            <p className="text-xs text-gray-400 mt-2">
+              For example, a 30 day switch will send you a reminder at 15 days
+              and again at 27 days.
+            </p>
           </div>
-          <Toggle
-            checked={reminderEnabled}
-            onChange={handleToggle}
-            disabled={saving}
-            label="Toggle check-in reminders"
-          />
+          <div className="flex-shrink-0">
+            <Toggle
+              checked={reminderEnabled}
+              onChange={handleToggle}
+              disabled={saving}
+              label="Toggle check-in reminders"
+            />
+          </div>
         </div>
       </SectionCard>
 
@@ -957,8 +1083,16 @@ function SettingsPageContent() {
           <div className="space-y-4">
             <h3 className="text-sm font-medium text-gray-900">Your Usage</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <UsageBar label="Switches" used={switchesUsed} limit={maxSwitches} />
-              <UsageBar label="Contacts" used={recipientsUsed} limit={maxRecipients} />
+              <UsageBar
+                label="Switches"
+                used={switchesUsed}
+                limit={maxSwitches}
+              />
+              <UsageBar
+                label="Contacts"
+                used={recipientsUsed}
+                limit={maxRecipients}
+              />
             </div>
           </div>
 
@@ -967,7 +1101,9 @@ function SettingsPageContent() {
             <div className="border border-gray-800 rounded-2xl p-5 bg-gradient-to-r from-gray-900 to-gray-800 text-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold">Need more switches or contacts?</h3>
+                  <h3 className="font-semibold">
+                    Need more switches or contacts?
+                  </h3>
                   <p className="text-sm text-gray-300 mt-1">
                     Upgrade to Starter for 5 switches and 10 contacts.
                   </p>
@@ -1014,14 +1150,14 @@ function SettingsPageContent() {
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
-            Once you delete your account, there is no going back. All your switches,
-            contacts, and settings will be permanently removed.
+            Once you delete your account, there is no going back. All your
+            switches, contacts, and settings will be permanently removed.
           </p>
           <button
             onClick={() => {
               if (
                 window.confirm(
-                  "Are you sure you want to delete your account? This cannot be undone and all your data will be permanently lost."
+                  "Are you sure you want to delete your account? This cannot be undone and all your data will be permanently lost.",
                 )
               ) {
                 // TODO: Implement account deletion
