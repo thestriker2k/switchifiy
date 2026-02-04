@@ -275,14 +275,14 @@ export default function LoginPage() {
             <p className="text-sm text-gray-500">
               By signing in, you agree to our{" "}
               <a
-                href="/terms"
+                href="https://switchifye.com/terms"
                 className="text-gray-700 hover:text-gray-900 underline underline-offset-2"
               >
                 Terms of Service
               </a>{" "}
               and{" "}
               <a
-                href="/privacy"
+                href="https://switchifye.com/privacy"
                 className="text-gray-700 hover:text-gray-900 underline underline-offset-2"
               >
                 Privacy Policy

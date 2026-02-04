@@ -38,6 +38,35 @@ function escapeHtml(input: string) {
     .replaceAll("'", "&#039;");
 }
 
+function formatTimeRemaining(dueAt: Date, now: Date): string {
+  const diffMs = dueAt.getTime() - now.getTime();
+  if (diffMs <= 0) return "very soon";
+
+  const totalMinutes = Math.floor(diffMs / (1000 * 60));
+  const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+
+  if (days > 0 && hours > 0) {
+    return `${days} day${days === 1 ? "" : "s"} and ${hours} hour${hours === 1 ? "" : "s"}`;
+  } else if (days > 0) {
+    return `${days} day${days === 1 ? "" : "s"}`;
+  } else if (totalHours > 0) {
+    return `${totalHours} hour${totalHours === 1 ? "" : "s"}`;
+  } else {
+    return `${totalMinutes} minute${totalMinutes === 1 ? "" : "s"}`;
+  }
+}
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 export async function GET(req: Request) {
   try {
     const supabaseUrl = process.env.SUPABASE_URL;
@@ -183,13 +212,13 @@ export async function GET(req: Request) {
       if (!userEmail) continue;
 
       const dueAt = addDays(s.last_checkin_at ?? s.created_at, s.interval_days);
-      const dueFormatted = dueAt
-        ? dueAt.toLocaleDateString("en-US", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })
+      
+      // For 24h switches, use countdown; for 7+ day switches, use date
+      const is24hSwitch = s.interval_days === 1;
+      const triggerText = dueAt
+        ? is24hSwitch
+          ? `in ${formatTimeRemaining(dueAt, now)}`
+          : `on ${formatDate(dueAt)}`
         : "soon";
 
       try {
@@ -202,14 +231,13 @@ export async function GET(req: Request) {
 
 Your switch "${s.name}" is 50% of the way through its check-in interval.
 
-It will trigger on ${dueFormatted} if you don't check in.
+It will trigger ${triggerText} if you don't check in.
 
 Log in to Switchifye to check in now:
 https://switchifye.com/dashboard
 
-—
-Switchifye
-Questions? Email support@switchifye.com`,
+Switchifye – https://switchifye.com
+Don't want these reminders? Manage your settings: https://switchifye.com/dashboard/settings`,
           HtmlBody: `
             <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.6;">
               <h2 style="margin: 0 0 12px;">Halfway Reminder</h2>
@@ -217,15 +245,15 @@ Questions? Email support@switchifye.com`,
                 Your switch "<strong>${escapeHtml(s.name)}</strong>" is 50% of the way through its check-in interval.
               </p>
               <p style="margin: 0 0 16px;">
-                It will trigger on <strong>${dueFormatted}</strong> if you don't check in.
+                It will trigger <strong>${triggerText}</strong> if you don't check in.
               </p>
               <p style="margin: 0 0 24px;">
                 <a href="https://switchifye.com/dashboard" style="background: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Check in now</a>
               </p>
               <hr style="margin: 24px 0; border: none; border-top: 1px solid #eee;" />
               <p style="font-size: 12px; color: #999; margin: 0;">
-                —<br />Switchifye<br />
-                <a href="https://switchifye.com">switchifye.com</a>
+                <a href="https://switchifye.com" style="color: #999;">Switchifye</a><br />
+                Don't want these reminders? <a href="https://switchifye.com/dashboard/settings" style="color: #999;">Manage your settings</a>
               </p>
             </div>
           `,
@@ -255,13 +283,10 @@ Questions? Email support@switchifye.com`,
       if (!userEmail) continue;
 
       const dueAt = addDays(s.last_checkin_at ?? s.created_at, s.interval_days);
-      const dueFormatted = dueAt
-        ? dueAt.toLocaleDateString("en-US", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })
+      
+      // 90% reminders always use countdown
+      const triggerText = dueAt
+        ? `in ${formatTimeRemaining(dueAt, now)}`
         : "very soon";
 
       try {
@@ -274,14 +299,13 @@ Questions? Email support@switchifye.com`,
 
 Your switch "${s.name}" is about to trigger!
 
-It will trigger on ${dueFormatted} if you don't check in.
+It will trigger ${triggerText} if you don't check in.
 
 Log in to Switchifye to check in now:
 https://switchifye.com/dashboard
 
-—
-Switchifye
-Questions? Email support@switchifye.com`,
+Switchifye – https://switchifye.com
+Don't want these reminders? Manage your settings: https://switchifye.com/dashboard/settings`,
           HtmlBody: `
             <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.6;">
               <h2 style="margin: 0 0 12px; color: #dc2626;">⚠️ Urgent Reminder</h2>
@@ -289,15 +313,15 @@ Questions? Email support@switchifye.com`,
                 Your switch "<strong>${escapeHtml(s.name)}</strong>" is about to trigger!
               </p>
               <p style="margin: 0 0 16px;">
-                It will trigger on <strong>${dueFormatted}</strong> if you don't check in.
+                It will trigger <strong>${triggerText}</strong> if you don't check in.
               </p>
               <p style="margin: 0 0 24px;">
                 <a href="https://switchifye.com/dashboard" style="background: #dc2626; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Check in now</a>
               </p>
               <hr style="margin: 24px 0; border: none; border-top: 1px solid #eee;" />
               <p style="font-size: 12px; color: #999; margin: 0;">
-                —<br />Switchifye<br />
-                <a href="https://switchifye.com">switchifye.com</a>
+                <a href="https://switchifye.com" style="color: #999;">Switchifye</a><br />
+                Don't want these reminders? <a href="https://switchifye.com/dashboard/settings" style="color: #999;">Manage your settings</a>
               </p>
             </div>
           `,
@@ -372,24 +396,17 @@ Questions? Email support@switchifye.com`,
 
             TextBody: `${bodyRaw}
 
-—
-Switchifye Alerts
-Questions? Email support@switchifye.com`,
+Sent via Switchifye – https://switchifye.com`,
 
             HtmlBody: `
               <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.6;">
                 <h2 style="margin: 0 0 12px;">${escapeHtml(subject)}</h2>
                 <p style="margin: 0 0 16px;">${safeHtmlBody}</p>
 
-                <hr style="margin: 24px 0;" />
-
-                <p style="font-size: 13px; color: #666; margin: 0 0 8px;">
-                  Questions? <a href="mailto:support@switchifye.com">support@switchifye.com</a>
-                </p>
+                <hr style="margin: 24px 0; border: none; border-top: 1px solid #eee;" />
 
                 <p style="font-size: 12px; color: #999; margin: 0;">
-                  —<br />Switchifye Alerts<br />
-                  <a href="https://switchifye.com">switchifye.com</a>
+                  Sent via <a href="https://switchifye.com" style="color: #999;">Switchifye</a>
                 </p>
               </div>
             `,
