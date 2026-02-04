@@ -16,7 +16,7 @@ export function IntervalButtons({
   label = "Interval",
 }: IntervalButtonsProps) {
   return (
-    <div className="space-y-2 sm:space-y-3">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="text-sm font-medium text-gray-700">{label}</div>
         <div className="text-sm font-semibold text-gray-900">
@@ -24,7 +24,7 @@ export function IntervalButtons({
         </div>
       </div>
 
-      <div className="grid grid-cols-4 sm:flex sm:flex-wrap gap-1.5 sm:gap-2">
+      <div className="flex flex-wrap gap-2">
         {ALLOWED_INTERVALS.map((d) => {
           const active = value === d;
           return (
@@ -34,10 +34,10 @@ export function IntervalButtons({
               disabled={disabled}
               onClick={() => onChange(d)}
               className={[
-                "rounded-lg sm:rounded-xl px-2 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all duration-200",
+                "rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200",
                 active 
                   ? "bg-gray-900 text-white shadow-md" 
-                  : "bg-white border border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50 active:bg-gray-100",
+                  : "bg-white border border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50",
                 disabled ? "opacity-50 cursor-not-allowed" : "",
               ].join(" ")}
             >
