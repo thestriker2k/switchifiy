@@ -85,6 +85,7 @@ export default function DashboardPage() {
     setEditingId(null);
     clearError();
     setShowCreate(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function handleCloseCreate() {
@@ -234,7 +235,7 @@ export default function DashboardPage() {
           value={
             lastCheckInAt
               ? formatDateTime(new Date(lastCheckInAt), browserTZ)
-              : "â€”"
+              : "—"
           }
           footer={browserTZ}
           icon={Icons.clock}
@@ -253,7 +254,19 @@ export default function DashboardPage() {
 
         {activeSwitches.length === 0 ? (
           <EmptyState
-            message="No active switches yet. Create one to get started!"
+            message={
+              <>
+                No active switches yet.{" "}
+                <button
+                  type="button"
+                  onClick={handleOpenCreate}
+                  className="text-teal-600 hover:text-teal-700 font-medium hover:underline"
+                >
+                  Create one
+                </button>{" "}
+                to get started!
+              </>
+            }
             icon={Icons.empty}
           />
         ) : (

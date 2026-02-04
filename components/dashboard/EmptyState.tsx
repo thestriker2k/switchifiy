@@ -1,5 +1,5 @@
 interface EmptyStateProps {
-  message: string;
+  message: React.ReactNode;
   icon?: React.ReactNode;
 }
 
@@ -11,7 +11,7 @@ export function EmptyState({ message, icon }: EmptyStateProps) {
           {icon}
         </div>
       )}
-      <p className="text-sm text-gray-500">{message}</p>
+      <p className="text-sm text-gray-500 text-center">{message}</p>
     </div>
   );
 }

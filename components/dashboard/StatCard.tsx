@@ -1,7 +1,7 @@
 interface StatCardProps {
-  title: string;
-  value: string | number;
-  footer?: string;
+  title: React.ReactNode;
+  value: React.ReactNode;
+  footer?: React.ReactNode;
   icon?: React.ReactNode;
   onClick?: () => void;
   compact?: boolean;
