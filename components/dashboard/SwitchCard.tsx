@@ -126,31 +126,31 @@ export function SwitchCard({
               <button
                 type="button"
                 onClick={isOpen ? onClose : onEdit}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all flex-shrink-0"
               >
                 {isOpen ? "Close" : isCompleted ? "View" : "Edit"}
               </button>
             </div>
-
-            {isOpen && (
-              <SwitchEditor
-                switchData={switchData}
-                recipients={recipients}
-                switchRecipients={switchRecipients}
-                onClose={onClose}
-                onSave={onSave}
-                onDelete={onDelete}
-                onRecipientsChange={onRecipientsChange}
-                onError={onError}
-                canAddRecipient={canAddRecipient}
-                planName={planName}
-                maxRecipients={maxRecipients}
-                onCreateRecipient={onCreateRecipient}
-                refreshUsage={refreshUsage}
-              />
-            )}
           </div>
         </div>
+
+        {isOpen && (
+          <SwitchEditor
+            switchData={switchData}
+            recipients={recipients}
+            switchRecipients={switchRecipients}
+            onClose={onClose}
+            onSave={onSave}
+            onDelete={onDelete}
+            onRecipientsChange={onRecipientsChange}
+            onError={onError}
+            canAddRecipient={canAddRecipient}
+            planName={planName}
+            maxRecipients={maxRecipients}
+            onCreateRecipient={onCreateRecipient}
+            refreshUsage={refreshUsage}
+          />
+        )}
       </div>
     </div>
   );
