@@ -538,30 +538,32 @@ export function SwitchEditor({
       </div>
 
       {/* Actions */}
-      <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100">
-        {!isCompleted && (
+      <div className="pt-4 border-t border-gray-100 space-y-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {!isCompleted && (
+            <button
+              type="button"
+              className="px-5 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50"
+              disabled={savingSwitch || savingMessage || savingRecipient || deleting}
+              onClick={handleSaveAll}
+            >
+              {savingSwitch || savingMessage ? "Saving..." : "Save Changes"}
+            </button>
+          )}
+
           <button
             type="button"
-            className="px-5 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50"
+            className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors"
+            onClick={onClose}
             disabled={savingSwitch || savingMessage || savingRecipient || deleting}
-            onClick={handleSaveAll}
           >
-            {savingSwitch || savingMessage ? "Saving..." : "Save Changes"}
+            {isCompleted ? "Close" : "Cancel"}
           </button>
-        )}
+        </div>
 
         <button
           type="button"
-          className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors"
-          onClick={onClose}
-          disabled={savingSwitch || savingMessage || savingRecipient || deleting}
-        >
-          {isCompleted ? "Close" : "Cancel"}
-        </button>
-
-        <button
-          type="button"
-          className="ml-auto px-5 py-2.5 text-red-600 text-sm font-medium rounded-xl hover:bg-red-50 transition-colors"
+          className="text-red-600 text-sm font-medium hover:text-red-700 transition-colors disabled:opacity-50"
           onClick={openDeleteModal}
           disabled={savingSwitch || savingMessage || savingRecipient || deleting}
         >
