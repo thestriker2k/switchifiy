@@ -355,13 +355,13 @@ export function SwitchEditor({
   }
 
   return (
-    <div className="mt-4 p-6 bg-gray-50/80 rounded-2xl border border-gray-100 space-y-6">
-      <div className="flex items-center justify-between gap-3">
+    <div className="mt-4 p-4 sm:p-6 bg-gray-50/80 rounded-2xl border border-gray-100 space-y-5 sm:space-y-6">
+      <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-gray-900">
           {isCompleted ? "Switch Details" : "Edit Switch"}
         </h3>
         {saveNotice && (
-          <span className="text-sm font-medium text-emerald-600 flex items-center gap-1">
+          <span className="text-xs sm:text-sm font-medium text-emerald-600 flex items-center gap-1">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
@@ -371,11 +371,11 @@ export function SwitchEditor({
       </div>
 
       {/* Settings */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-2">
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-700">Name</label>
           <input
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
             disabled={deleting || isCompleted}
@@ -391,12 +391,12 @@ export function SwitchEditor({
       </div>
 
       {/* Recipients */}
-      <div className="pt-4 border-t border-gray-200 space-y-4">
+      <div className="pt-4 sm:pt-5 border-t border-gray-200 space-y-3 sm:space-y-4">
         <h4 className="text-sm font-semibold text-gray-900">Recipients</h4>
 
         {recipientError && (
           <div className="flex items-center gap-2 text-sm text-red-600">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             {recipientError}
@@ -406,22 +406,25 @@ export function SwitchEditor({
         {attachedRecipientsForEditing.length === 0 ? (
           <p className="text-sm text-gray-500">No recipients attached yet.</p>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
             {attachedRecipientsForEditing.map((r) => (
               <div
                 key={r.id}
                 className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm"
               >
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center text-white text-xs font-medium">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
                   {r.name[0]?.toUpperCase()}
                 </div>
-                <span className="text-gray-700">{r.name}</span>
-                <span className="text-gray-400 text-xs">({r.email})</span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-gray-700 block truncate">{r.name}</span>
+                  <span className="text-gray-400 text-xs block truncate sm:hidden">{r.email}</span>
+                </div>
+                <span className="text-gray-400 text-xs hidden sm:inline">({r.email})</span>
 
                 {!isCompleted && (
                   <button
                     type="button"
-                    className="ml-1 text-gray-400 hover:text-red-500 transition-colors"
+                    className="ml-1 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 p-1 -m-1"
                     disabled={savingRecipient || deleting}
                     onClick={() => removeRecipient(r.id)}
                   >
@@ -436,9 +439,9 @@ export function SwitchEditor({
         )}
 
         {!isCompleted && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="space-y-3 sm:grid sm:grid-cols-1 lg:grid-cols-2 sm:gap-4 sm:space-y-0">
             <select
-              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
               value={selectedRecipientId}
               onChange={async (e) => {
                 const id = e.target.value;
@@ -463,30 +466,32 @@ export function SwitchEditor({
               ))}
             </select>
 
-            <div className="p-4 bg-white border border-gray-200 rounded-xl space-y-3">
+            <div className="p-3 sm:p-4 bg-white border border-gray-200 rounded-xl space-y-2 sm:space-y-3">
               <p className="text-sm font-medium text-gray-700">Or add new contact</p>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <input
-                  className="w-full sm:flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
-                  placeholder="Name"
-                  value={editNewRecipientName}
-                  onChange={(e) => setEditNewRecipientName(e.target.value)}
-                  disabled={deleting || addingContactInEditor}
-                />
-                <input
-                  className="w-full sm:flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
-                  placeholder="Email"
-                  value={editNewRecipientEmail}
-                  onChange={(e) => setEditNewRecipientEmail(e.target.value)}
-                  disabled={deleting || addingContactInEditor}
-                />
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    className="flex-1 min-w-0 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+                    placeholder="Name"
+                    value={editNewRecipientName}
+                    onChange={(e) => setEditNewRecipientName(e.target.value)}
+                    disabled={deleting || addingContactInEditor}
+                  />
+                  <input
+                    className="flex-1 min-w-0 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+                    placeholder="Email"
+                    value={editNewRecipientEmail}
+                    onChange={(e) => setEditNewRecipientEmail(e.target.value)}
+                    disabled={deleting || addingContactInEditor}
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={handleAddNewRecipient}
                   disabled={deleting || addingContactInEditor}
                   className="w-full sm:w-auto px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
                 >
-                  {addingContactInEditor ? "..." : "Add"}
+                  {addingContactInEditor ? "Adding..." : "Add Contact"}
                 </button>
               </div>
             </div>
@@ -495,13 +500,13 @@ export function SwitchEditor({
       </div>
 
       {/* Message */}
-      <div className="pt-4 border-t border-gray-200 space-y-4">
+      <div className="pt-4 sm:pt-5 border-t border-gray-200 space-y-3 sm:space-y-4">
         <h4 className="text-sm font-semibold text-gray-900">Message</h4>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
           {isCompleted ? (
             // Read-only view for completed switches
-            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+            <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 space-y-3">
               <div className="text-xs text-gray-500">
                 Subject: <span className="font-medium text-gray-900">{messageSubject}</span>
               </div>
@@ -538,11 +543,11 @@ export function SwitchEditor({
       </div>
 
       {/* Actions */}
-      <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-200">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 pt-4 border-t border-gray-200">
         {!isCompleted && (
           <button
             type="button"
-            className="px-5 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50"
+            className="px-5 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50 order-1"
             disabled={savingSwitch || savingMessage || savingRecipient || deleting}
             onClick={handleSaveAll}
           >
@@ -552,7 +557,7 @@ export function SwitchEditor({
 
         <button
           type="button"
-          className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors"
+          className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors order-2"
           onClick={onClose}
           disabled={savingSwitch || savingMessage || savingRecipient || deleting}
         >
@@ -561,7 +566,7 @@ export function SwitchEditor({
 
         <button
           type="button"
-          className="ml-auto px-5 py-2.5 text-red-600 text-sm font-medium rounded-xl hover:bg-red-50 transition-colors"
+          className="sm:ml-auto px-5 py-2.5 text-red-600 text-sm font-medium rounded-xl hover:bg-red-50 transition-colors border border-transparent sm:border-transparent order-3 mt-2 sm:mt-0"
           onClick={openDeleteModal}
           disabled={savingSwitch || savingMessage || savingRecipient || deleting}
         >
@@ -571,7 +576,7 @@ export function SwitchEditor({
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -580,20 +585,25 @@ export function SwitchEditor({
           />
 
           {/* Modal */}
-          <div className="relative bg-white rounded-2xl max-w-md w-full shadow-2xl">
+          <div className="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl">
+            {/* Drag handle for mobile */}
+            <div className="sm:hidden flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-gray-300 rounded-full" />
+            </div>
+
             {/* Header */}
-            <div className="p-6 border-b border-gray-100">
+            <div className="p-5 sm:p-6 border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-red-50 rounded-xl">
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900">
                     Delete Switch
                   </h2>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-xs sm:text-sm text-gray-500">
                     This action cannot be undone
                   </p>
                 </div>
@@ -601,7 +611,7 @@ export function SwitchEditor({
             </div>
 
             {/* Content */}
-            <div className="p-6">
+            <div className="p-5 sm:p-6">
               <p className="text-sm text-gray-600">
                 Are you sure you want to delete{" "}
                 <span className="font-semibold text-gray-900">{switchData.name}</span>? 
@@ -610,18 +620,18 @@ export function SwitchEditor({
             </div>
 
             {/* Actions */}
-            <div className="p-6 border-t border-gray-100 flex gap-3">
+            <div className="p-5 sm:p-6 border-t border-gray-100 flex flex-col-reverse sm:flex-row gap-2 sm:gap-3">
               <button
                 onClick={closeDeleteModal}
                 disabled={deleting}
-                className="flex-1 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all disabled:opacity-50"
+                className="flex-1 px-4 py-3 sm:py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={deleting}
-                className="flex-1 px-4 py-2.5 bg-red-600 text-white text-sm font-medium rounded-xl hover:bg-red-700 transition-all disabled:opacity-50"
+                className="flex-1 px-4 py-3 sm:py-2.5 bg-red-600 text-white text-sm font-medium rounded-xl hover:bg-red-700 transition-all disabled:opacity-50"
               >
                 {deleting ? "Deleting..." : "Delete Switch"}
               </button>

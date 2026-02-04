@@ -54,15 +54,15 @@ export function MessagePreview({
   return (
     <div className="bg-gradient-to-b from-gray-50 to-gray-100 rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
       {/* Window chrome */}
-      <div className="px-4 py-2.5 bg-gradient-to-b from-gray-100 to-gray-50 border-b border-gray-200">
-        <div className="flex items-center justify-between">
+      <div className="px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-b from-gray-100 to-gray-50 border-b border-gray-200">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <div className="flex gap-1.5">
+            <div className="hidden sm:flex gap-1.5">
               <div className="w-3 h-3 rounded-full bg-red-400" />
               <div className="w-3 h-3 rounded-full bg-amber-400" />
               <div className="w-3 h-3 rounded-full bg-green-400" />
             </div>
-            <span className="text-xs font-medium text-gray-500 ml-2">
+            <span className="text-xs font-medium text-gray-500 sm:ml-2">
               {title}
             </span>
           </div>
@@ -70,11 +70,11 @@ export function MessagePreview({
           {/* Recipient dropdown */}
           {recipients.length > 0 && (
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-gray-400">View as:</span>
+              <span className="text-xs text-gray-400 hidden sm:inline">View as:</span>
               <select
                 value={previewAsId || r?.id || ""}
                 onChange={(e) => setPreviewAsId(e.target.value)}
-                className="text-xs bg-white border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 cursor-pointer"
+                className="text-xs bg-white border border-gray-200 rounded-lg px-2 py-1.5 sm:py-1 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 cursor-pointer max-w-[120px] sm:max-w-none truncate"
               >
                 {recipients.map((rec) => (
                   <option key={rec.id} value={rec.id}>
@@ -88,18 +88,18 @@ export function MessagePreview({
       </div>
 
       {/* Email content */}
-      <div className="bg-white m-2 rounded-xl border border-gray-100 shadow-sm">
+      <div className="bg-white m-1.5 sm:m-2 rounded-xl border border-gray-100 shadow-sm">
         {/* Email header */}
-        <div className="px-4 py-3 border-b border-gray-100 space-y-2">
-          <div className="flex items-start gap-3">
+        <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-100 space-y-2">
+          <div className="flex items-start gap-2.5 sm:gap-3">
             {/* Sender avatar */}
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 shadow-sm">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center text-white text-xs sm:text-sm font-semibold flex-shrink-0 shadow-sm">
               S
             </div>
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
-                <div className="font-semibold text-gray-900 text-sm">
+                <div className="font-semibold text-gray-900 text-sm truncate">
                   Switchifye Alerts
                 </div>
                 <div className="text-xs text-gray-400 flex-shrink-0">
@@ -112,17 +112,17 @@ export function MessagePreview({
                   r.name
                 ) : (
                   <span className="italic text-gray-400">
-                    select a recipient above
+                    select a recipient
                   </span>
                 )}
-                {r && <span className="text-gray-400"> &lt;{r.email}&gt;</span>}
+                {r && <span className="text-gray-400 hidden sm:inline"> &lt;{r.email}&gt;</span>}
               </div>
             </div>
           </div>
 
           {/* Subject line */}
-          <div className="pl-[52px]">
-            <h3 className="font-semibold text-gray-900">
+          <div className="pl-[42px] sm:pl-[52px]">
+            <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
               {subject || (
                 <span className="text-gray-400 font-normal italic">
                   No subject
@@ -133,15 +133,15 @@ export function MessagePreview({
         </div>
 
         {/* Email body */}
-        <div className="px-4 py-4 pl-[68px]">
+        <div className="px-3 sm:px-4 py-3 sm:py-4 sm:pl-[68px]">
           <div className="text-sm text-gray-700 leading-relaxed">
             {renderBody(body)}
           </div>
         </div>
 
         {/* Email footer */}
-        <div className="px-4 py-3 pl-[68px] border-t border-gray-50 bg-gray-50/50">
-          <div className="flex items-center gap-4 text-xs text-gray-400">
+        <div className="px-3 sm:px-4 py-2.5 sm:py-3 sm:pl-[68px] border-t border-gray-50 bg-gray-50/50">
+          <div className="flex items-center gap-3 sm:gap-4 text-xs text-gray-400">
             <div className="flex items-center gap-1.5">
               <svg
                 className="w-3.5 h-3.5"
@@ -159,21 +159,22 @@ export function MessagePreview({
               <span>via Switchifye</span>
             </div>
             <div className="w-1 h-1 rounded-full bg-gray-300" />
-            <span>Preview only</span>
+            <span>Preview</span>
           </div>
         </div>
       </div>
 
       {/* Status bar */}
-      <div className="px-4 py-2 flex items-center justify-between">
+      <div className="px-3 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
           <span className="text-xs text-gray-500">
-            Sends when switch triggers
+            <span className="hidden sm:inline">Sends when switch triggers</span>
+            <span className="sm:hidden">Sends on trigger</span>
           </span>
         </div>
         {r && (
-          <span className="text-xs text-gray-400">Viewing as {r.name}</span>
+          <span className="text-xs text-gray-400 truncate max-w-[100px] sm:max-w-none">As {r.name}</span>
         )}
       </div>
     </div>
