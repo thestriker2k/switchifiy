@@ -68,16 +68,10 @@ export function MessageComposer({
       {/* Window chrome */}
       <div className="px-4 py-2.5 bg-gradient-to-b from-gray-100 to-gray-50 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-red-400" />
-              <div className="w-3 h-3 rounded-full bg-amber-400" />
-              <div className="w-3 h-3 rounded-full bg-green-400" />
-            </div>
-            <span className="text-xs font-medium text-gray-500 ml-2">
-              Compose Message
-            </span>
-          </div>
+          <span className="text-xs font-medium text-gray-500 hidden sm:block">
+            Compose Message
+          </span>
+          <div className="sm:hidden" />
 
           {/* Formatting toolbar */}
           <div className="flex items-center gap-1">
