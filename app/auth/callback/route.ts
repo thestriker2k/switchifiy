@@ -53,7 +53,6 @@ export async function GET(request: Request) {
     }
   }
 
-  // Redirect to a client page that will check localStorage for plan selection
-  // and redirect to checkout or dashboard accordingly
-  return NextResponse.redirect(new URL("/auth/complete", request.url));
+  // Always redirect to dashboard - it will check localStorage for pending checkout
+  return NextResponse.redirect(new URL("/dashboard", request.url));
 }

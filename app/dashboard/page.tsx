@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useSwitches } from "@/hooks/use-switches";
 import { useRecipients } from "@/hooks/use-recipients";
+import { usePendingCheckout } from "@/hooks/use-pending-checkout";
 import { formatDateTime } from "@/lib/utils";
 
 import {
@@ -19,6 +20,9 @@ import {
 
 export default function DashboardPage() {
   const router = useRouter();
+
+  // Check for pending checkout FIRST (user signed up with a plan selected)
+  const checkingPendingCheckout = usePendingCheckout();
 
   // Subscription hook for plan limits
   const {
@@ -133,6 +137,18 @@ export default function DashboardPage() {
     if (section) {
       section.scrollIntoView({ behavior: "smooth" });
     }
+  }
+
+  // Checking for pending checkout redirect
+  if (checkingPendingCheckout) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="animate-spin w-8 h-8 border-4 border-gray-200 border-t-gray-900 rounded-full mb-4" />
+          <p className="text-gray-600">Setting up your account...</p>
+        </div>
+      </div>
+    );
   }
 
   // Loading state
