@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
 import type { SwitchRow, RecipientRow, SwitchRecipientRow, FocusTarget } from "@/lib/types";
 import type { AllowedInterval } from "@/lib/constants";
-import { ALLOWED_INTERVALS, DEFAULT_MESSAGE_SUBJECT, DEFAULT_MESSAGE_BODY } from "@/lib/constants";
+import { ALLOWED_INTERVALS, FREE_INTERVALS, DEFAULT_MESSAGE_SUBJECT, DEFAULT_MESSAGE_BODY } from "@/lib/constants";
 import { renderWithTokens, insertTokenAtCursor, wrapSelectionWith, getBrowserTimeZone } from "@/lib/utils";
 
 import { IntervalButtons } from "./IntervalButtons";
@@ -44,6 +44,12 @@ export function SwitchEditor({
 }: SwitchEditorProps) {
   const isCompleted = switchData.status === "completed";
   const browserTZ = useMemo(() => getBrowserTimeZone("UTC"), []);
+
+  // Check if user can use a specific interval based on plan
+  const canUseInterval = (interval: AllowedInterval): boolean => {
+    if (planName !== "Free") return true;
+    return (FREE_INTERVALS as readonly number[]).includes(interval);
+  };
 
   // Form state
   const [editName, setEditName] = useState(switchData.name);
@@ -178,6 +184,15 @@ export function SwitchEditor({
       onError("Interval must be one of: 24 hours, 7, 14, 30, 60, 90, or 365 days.");
       return;
     }
+    
+    // Check if user can use the selected interval based on their plan
+    if (!canUseInterval(editIntervalDays)) {
+      onError(
+        "Daily and weekly check-ins are only available on paid plans. Please upgrade or select a monthly or yearly interval.",
+      );
+      return;
+    }
+    
     if (attachedRecipientsForEditing.length === 0) {
       onError("At least one recipient is required.");
       return;
@@ -387,6 +402,7 @@ export function SwitchEditor({
           onChange={setEditIntervalDays}
           disabled={deleting || isCompleted}
           label="Interval"
+          planName={planName}
         />
       </div>
 

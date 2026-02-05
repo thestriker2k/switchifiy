@@ -6,6 +6,7 @@ import type { RecipientRow, FocusTarget } from "@/lib/types";
 import type { AllowedInterval } from "@/lib/constants";
 import {
   ALLOWED_INTERVALS,
+  FREE_INTERVALS,
   DEFAULT_MESSAGE_SUBJECT,
   DEFAULT_MESSAGE_BODY,
 } from "@/lib/constants";
@@ -85,6 +86,12 @@ export function CreateSwitchForm({
 
   const createSubjectRef = useRef<HTMLInputElement | null>(null);
   const createBodyRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Check if user can use a specific interval based on plan
+  const canUseInterval = (interval: AllowedInterval): boolean => {
+    if (planName !== "Free") return true;
+    return (FREE_INTERVALS as readonly number[]).includes(interval);
+  };
 
   // Preview
   const createPreviewRecipient =
@@ -208,6 +215,15 @@ export function CreateSwitchForm({
       );
       return;
     }
+    
+    // Check if user can use the selected interval based on their plan
+    if (!canUseInterval(createIntervalDays)) {
+      onError(
+        "Daily and weekly check-ins are only available on paid plans. Please upgrade or select a monthly or yearly interval.",
+      );
+      return;
+    }
+    
     if (!createMessageBody.trim()) {
       onError("Message body is required.");
       return;
@@ -318,6 +334,7 @@ export function CreateSwitchForm({
             onChange={setCreateIntervalDays}
             disabled={creating}
             label="Check-in interval"
+            planName={planName}
           />
         </div>
 
