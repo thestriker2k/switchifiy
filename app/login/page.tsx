@@ -83,7 +83,9 @@ function LoginContent() {
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Switchifye" className="h-8 w-auto" />
+            <a href="https://switchifye.com">
+              <img src="/logo.png" alt="Switchifye" className="h-8 w-auto" />
+            </a>
           </div>
 
           {/* Main content */}
@@ -170,7 +172,9 @@ function LoginContent() {
         <div className="w-full max-w-md space-y-8">
           {/* Mobile logo */}
           <div className="lg:hidden flex justify-center mb-8">
-            <img src="/logo.png" alt="Switchifye" className="h-8 w-auto" />
+            <a href="https://switchifye.com">
+              <img src="/logo.png" alt="Switchifye" className="h-8 w-auto" />
+            </a>
           </div>
 
           {/* Header - changes based on whether user is signing up for a plan */}
