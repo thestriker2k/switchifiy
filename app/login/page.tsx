@@ -1,21 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Get plan params from URL (e.g., /login?plan=pro&billing=yearly)
+  const plan = searchParams.get("plan");
+  const billing = searchParams.get("billing");
+
+  // Show appropriate messaging based on plan selection
+  const planName = plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : null;
+  const isUpgradeFlow = plan && plan !== "free";
 
   async function signInWithGoogle() {
     setLoading(true);
     setMsg(null);
 
     try {
+      // Build callback URL with plan params if present
+      let callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`;
+      if (plan) {
+        const params = new URLSearchParams();
+        params.set("plan", plan);
+        if (billing) params.set("billing", billing);
+        callbackUrl += `?${params.toString()}`;
+      }
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+          redirectTo: callbackUrl,
         },
       });
 
@@ -150,12 +169,30 @@ export default function LoginPage() {
             <img src="/logo.png" alt="Switchifye" className="h-8 w-auto" />
           </div>
 
-          {/* Header */}
+          {/* Header - changes based on whether user is signing up for a plan */}
           <div className="text-center lg:text-left space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-              Welcome to Switchifye
-            </h2>
-            <p className="text-gray-500">Sign in to access your dashboard</p>
+            {isUpgradeFlow ? (
+              <>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-blue-500/10 to-teal-500/10 border border-teal-200 rounded-full mb-3">
+                  <span className="text-sm font-medium text-teal-700">
+                    {planName} Plan Selected
+                  </span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+                  Create your account
+                </h2>
+                <p className="text-gray-500">
+                  Sign up to continue to checkout
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+                  Welcome to Switchifye
+                </h2>
+                <p className="text-gray-500">Sign in to access your dashboard</p>
+              </>
+            )}
           </div>
 
           {/* Sign in button */}
