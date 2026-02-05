@@ -7,10 +7,6 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get("code");
   const error = requestUrl.searchParams.get("error");
   const errorDescription = requestUrl.searchParams.get("error_description");
-  
-  // Get plan params (passed through from login page)
-  const plan = requestUrl.searchParams.get("plan");
-  const billing = requestUrl.searchParams.get("billing") || "yearly";
 
   // If there's an OAuth error, redirect to login with error message
   if (error) {
@@ -55,19 +51,9 @@ export async function GET(request: Request) {
         ),
       );
     }
-
-    // If user selected a paid plan, redirect to checkout
-    if (plan && plan !== "free") {
-      const checkoutParams = new URLSearchParams();
-      checkoutParams.set("plan", plan);
-      checkoutParams.set("billing", billing);
-      
-      return NextResponse.redirect(
-        new URL(`/api/stripe/checkout-redirect?${checkoutParams.toString()}`, request.url)
-      );
-    }
   }
 
-  // Default: redirect to dashboard
-  return NextResponse.redirect(new URL("/dashboard", request.url));
+  // Redirect to a client page that will check localStorage for plan selection
+  // and redirect to checkout or dashboard accordingly
+  return NextResponse.redirect(new URL("/auth/complete", request.url));
 }

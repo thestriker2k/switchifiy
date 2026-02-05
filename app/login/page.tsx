@@ -22,19 +22,23 @@ function LoginContent() {
     setMsg(null);
 
     try {
-      // Build callback URL with plan params if present
-      let callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`;
+      // Store plan params in localStorage before OAuth redirect
+      // (Google OAuth doesn't preserve query params through the flow)
       if (plan) {
-        const params = new URLSearchParams();
-        params.set("plan", plan);
-        if (billing) params.set("billing", billing);
-        callbackUrl += `?${params.toString()}`;
+        localStorage.setItem("signup_plan", plan);
+        if (billing) {
+          localStorage.setItem("signup_billing", billing);
+        }
+      } else {
+        // Clear any stale plan data
+        localStorage.removeItem("signup_plan");
+        localStorage.removeItem("signup_billing");
       }
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: callbackUrl,
+          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
         },
       });
 
