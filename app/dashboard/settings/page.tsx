@@ -35,8 +35,8 @@ const PLANS: Plan[] = [
     features: [
       "1 switch",
       "2 contacts",
+      "Monthly & yearly check-ins",
       "Email notifications",
-      "Community support",
     ],
   },
   {
@@ -47,12 +47,12 @@ const PLANS: Plan[] = [
     priceYearly: 50,
     maxSwitches: 5,
     maxRecipients: 10,
+    popular: true,
     features: [
       "5 switches",
       "10 contacts",
+      "Daily, weekly, monthly & yearly check-ins",
       "Email notifications",
-      "Custom intervals",
-      "Email support",
     ],
   },
   {
@@ -63,11 +63,11 @@ const PLANS: Plan[] = [
     priceYearly: 90,
     maxSwitches: 25,
     maxRecipients: 50,
-    popular: true,
     features: [
       "25 switches",
       "50 contacts",
-      "Everything in Starter",
+      "Daily, weekly, monthly & yearly check-ins",
+      "Email notifications",
       "Priority support",
     ],
   },
@@ -510,7 +510,7 @@ function UpgradeModal({
   onSelectPlan: (planId: PlanTier, isYearly: boolean) => void;
   loading?: boolean;
 }) {
-  const [isYearly, setIsYearly] = useState(true);
+  const [isYearly, setIsYearly] = useState(false);
 
   if (!isOpen) return null;
 
